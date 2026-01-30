@@ -3,7 +3,7 @@ import axios from 'axios';
 // This is your base API configuration. 
 // You can change 'baseURL' to the endpoint your backend team provides.
 const api = axios.create({
-    baseURL: 'https://api.example.com', // Replace with your actual backend URL
+    baseURL: 'http://192.168.0.181:8080/api', // Your backend IP address
     timeout: 10000,
     headers: {
         'Content-Type': 'application/json',
