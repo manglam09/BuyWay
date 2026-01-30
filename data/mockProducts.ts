@@ -23,6 +23,7 @@ export interface Product {
     inStock: boolean;
     badge?: 'new' | 'sale' | 'trending';
     sizes?: string[];
+    colors?: { name: string; image: string }[];
     detailedReviews?: Review[];
 }
 
@@ -67,6 +68,11 @@ export const mockProducts: Product[] = [
         inStock: true,
         badge: 'sale',
         sizes: defaultSizes,
+        colors: [
+            { name: 'White', image: 'https://cdn.shopify.com/s/files/1/0420/7073/7058/files/4mss3730-02-m-64.jpg?v=1737612279' },
+            { name: 'Blue', image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=400&q=80' },
+            { name: 'Black', image: 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=400&q=80' }
+        ],
         detailedReviews: sampleReviews,
     },
     {
@@ -81,6 +87,11 @@ export const mockProducts: Product[] = [
         inStock: true,
         badge: 'trending',
         sizes: ['XS', 'S', 'M', 'L'],
+        colors: [
+            { name: 'Floral', image: 'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=800&q=60' },
+            { name: 'Red', image: 'https://images.unsplash.com/photo-1572804013307-a9a11198527a?w=400&q=80' },
+            { name: 'Yellow', image: 'https://images.unsplash.com/photo-1593030761757-71fae45fa0e7?w=400&q=80' }
+        ],
         detailedReviews: sampleReviews,
     },
     {
@@ -110,6 +121,10 @@ export const mockProducts: Product[] = [
         inStock: true,
         badge: 'new',
         sizes: defaultSizes,
+        colors: [
+            { name: 'Blue', image: 'https://images.unsplash.com/photo-1551537482-f2075a1d41f2?w=800&q=60' },
+            { name: 'Black', image: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400&q=80' }
+        ],
         detailedReviews: sampleReviews,
     },
     {

@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
+    Modal,
     Platform,
     ScrollView,
     StyleSheet,
@@ -28,10 +29,17 @@ export default function ProductDetails() {
     const { showToast } = useToast();
     const product = mockProducts.find((p: Product) => p.id === id);
 
+    const recommendedProducts = mockProducts
+        .filter(p => p.category === product?.category && p.id !== product?.id)
+        .slice(0, 4);
+
     const [selectedSize, setSelectedSize] = useState<string | null>(null);
     const [isWishlisted, setIsWishlisted] = useState(wishlistService.isInWishlist(product?.id || ''));
     const [cartCount, setCartCount] = useState(cartService.getItems().length);
     const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
+    const [isSizeGuideVisible, setIsSizeGuideVisible] = useState(false);
+    const [expandedSection, setExpandedSection] = useState<string | null>(null);
+    const [selectedColor, setSelectedColor] = useState(product?.colors?.[0] || { name: 'Default', image: product?.image });
 
     useEffect(() => {
         const unsubscribeWishlist = wishlistService.subscribe(() => {
@@ -157,7 +165,7 @@ export default function ProductDetails() {
                                 onPress={() => setIsImageViewerVisible(true)}
                             >
                                 <Image
-                                    source={{ uri: product.image }}
+                                    source={{ uri: selectedColor.image }}
                                     style={styles.productImage}
                                     contentFit="contain"
                                     transition={500}
@@ -230,7 +238,7 @@ export default function ProductDetails() {
                                 <View style={styles.section}>
                                     <View style={styles.sectionHeader}>
                                         <Text style={styles.sectionTitle}>Select Size</Text>
-                                        <TouchableOpacity>
+                                        <TouchableOpacity onPress={() => setIsSizeGuideVisible(true)}>
                                             <Text style={styles.guideText}>Size Guide</Text>
                                         </TouchableOpacity>
                                     </View>
@@ -255,10 +263,77 @@ export default function ProductDetails() {
                                 </View>
                             )}
 
+                            {/* Colors Selector */}
+                            {product.colors && (
+                                <View style={styles.section}>
+                                    <Text style={styles.sectionTitle}>COLORS</Text>
+                                    <View style={styles.colorVariantsGrid}>
+                                        {product.colors.map((color, index) => (
+                                            <TouchableOpacity
+                                                key={index}
+                                                style={[
+                                                    styles.colorThumbnail,
+                                                    selectedColor.name === color.name && styles.colorThumbnailActive
+                                                ]}
+                                                onPress={() => setSelectedColor(color)}
+                                                activeOpacity={0.8}
+                                            >
+                                                <Image
+                                                    source={{ uri: color.image }}
+                                                    style={styles.colorThumbnailImage}
+                                                    contentFit="cover"
+                                                />
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                </View>
+                            )}
+
                             {/* Description */}
                             <View style={styles.section}>
                                 <Text style={styles.sectionTitle}>Description</Text>
                                 <Text style={styles.descriptionText}>{product.description}</Text>
+                            </View>
+
+                            {/* Collapsible Info Sections */}
+                            <View style={styles.accordionContainer}>
+                                {[
+                                    {
+                                        id: 'details',
+                                        title: 'DETAILS',
+                                        content: '• 100% Premium Material\n• Breathable fabric\n• Reinforced stitching for durability\n• Modern fit design'
+                                    },
+                                    {
+                                        id: 'delivery',
+                                        title: 'DELIVERY',
+                                        content: '• Free standard delivery on orders above ₹999\n• Estimated delivery: 3-5 business days\n• Express delivery available at checkout'
+                                    },
+                                    {
+                                        id: 'returns',
+                                        title: 'RETURNS',
+                                        content: '• Easy 30-day return policy\n• Free returns for members\n• Items must be in original condition with tags'
+                                    },
+                                ].map((item) => (
+                                    <View key={item.id} style={styles.accordionItem}>
+                                        <TouchableOpacity
+                                            style={styles.accordionHeader}
+                                            onPress={() => setExpandedSection(expandedSection === item.id ? null : item.id)}
+                                            activeOpacity={0.7}
+                                        >
+                                            <Text style={styles.accordionTitle}>{item.title}</Text>
+                                            <Ionicons
+                                                name={expandedSection === item.id ? "remove" : "add"}
+                                                size={20}
+                                                color="#1A1A2E"
+                                            />
+                                        </TouchableOpacity>
+                                        {expandedSection === item.id && (
+                                            <View style={styles.accordionContent}>
+                                                <Text style={styles.accordionText}>{item.content}</Text>
+                                            </View>
+                                        )}
+                                    </View>
+                                ))}
                             </View>
 
                             {/* Detailed Reviews */}
@@ -300,6 +375,49 @@ export default function ProductDetails() {
                                     </View>
                                 ))}
                             </View>
+
+                            {/* Recommendations Section */}
+                            {recommendedProducts.length > 0 && (
+                                <View style={styles.recommendationsSection}>
+                                    <View style={styles.sectionHeader}>
+                                        <Text style={styles.sectionTitle}>You May Also Like</Text>
+                                    </View>
+                                    <ScrollView
+                                        horizontal
+                                        showsHorizontalScrollIndicator={false}
+                                        style={styles.recommendationsScroll}
+                                        contentContainerStyle={styles.recommendationsContent}
+                                    >
+                                        {recommendedProducts.map((item) => (
+                                            <TouchableOpacity
+                                                key={item.id}
+                                                style={styles.recommendationCard}
+                                                onPress={() => router.push({
+                                                    pathname: "/(user)/product/[id]",
+                                                    params: { id: item.id }
+                                                })}
+                                            >
+                                                <View style={styles.recommendationImageContainer}>
+                                                    <Image
+                                                        source={{ uri: item.image }}
+                                                        style={styles.recommendationImage}
+                                                        contentFit="cover"
+                                                    />
+                                                    {item.badge && (
+                                                        <View style={[styles.miniBadge, styles[`badge${item.badge}` as keyof typeof styles] as any]}>
+                                                            <Text style={styles.miniBadgeText}>{item.badge.toUpperCase()}</Text>
+                                                        </View>
+                                                    )}
+                                                </View>
+                                                <View style={styles.recommendationInfo}>
+                                                    <Text style={styles.recommendationName} numberOfLines={1}>{item.name}</Text>
+                                                    <Text style={styles.recommendationPrice}>₹{item.price.toLocaleString()}</Text>
+                                                </View>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </ScrollView>
+                                </View>
+                            )}
                         </View>
                     </View>
                 </View>
@@ -310,6 +428,87 @@ export default function ProductDetails() {
                 isVisible={isImageViewerVisible}
                 onClose={() => setIsImageViewerVisible(false)}
             />
+
+            {/* Size Guide Modal */}
+            <Modal
+                visible={isSizeGuideVisible}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={() => setIsSizeGuideVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.guideModal}>
+                        <View style={styles.modalHeader}>
+                            <View>
+                                <Text style={styles.modalTitle}>Size Guide</Text>
+                                <Text style={styles.modalSubtitle}>All measurements are in inches</Text>
+                            </View>
+                            <TouchableOpacity
+                                style={styles.closeModalBtn}
+                                onPress={() => setIsSizeGuideVisible(false)}
+                            >
+                                <Ionicons name="close" size={24} color="#1A1A2E" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                            <View style={styles.tableContainer}>
+                                <View style={styles.tableHeader}>
+                                    <Text style={[styles.tableHeaderText, { flex: 1 }]}>Size</Text>
+                                    <Text style={[styles.tableHeaderText, { flex: 1 }]}>Chest</Text>
+                                    <Text style={[styles.tableHeaderText, { flex: 1 }]}>Waist</Text>
+                                    <Text style={[styles.tableHeaderText, { flex: 1 }]}>Length</Text>
+                                </View>
+                                {[
+                                    { s: 'S', c: '36-38', w: '30-32', l: '27' },
+                                    { s: 'M', c: '38-40', w: '32-34', l: '28' },
+                                    { s: 'L', c: '41-43', w: '35-37', l: '29' },
+                                    { s: 'XL', c: '44-46', w: '38-40', l: '30' },
+                                    { s: 'XXL', c: '47-49', w: '41-43', l: '31' },
+                                ].map((row, idx) => (
+                                    <View
+                                        key={row.s}
+                                        style={[
+                                            styles.tableRow,
+                                            idx % 2 === 0 && { backgroundColor: '#F8F9FA' }
+                                        ]}
+                                    >
+                                        <Text style={[styles.tableCell, { flex: 1, fontWeight: '700' }]}>{row.s}</Text>
+                                        <Text style={[styles.tableCell, { flex: 1 }]}>{row.c}</Text>
+                                        <Text style={[styles.tableCell, { flex: 1 }]}>{row.w}</Text>
+                                        <Text style={[styles.tableCell, { flex: 1 }]}>{row.l}</Text>
+                                    </View>
+                                ))}
+                            </View>
+
+                            <View style={styles.howToMeasure}>
+                                <Text style={styles.measureTitle}>How to measure?</Text>
+                                <View style={styles.measureItem}>
+                                    <View style={styles.measureBullet} />
+                                    <Text style={styles.measureText}>
+                                        <Text style={{ fontWeight: '700' }}>Chest: </Text>
+                                        Measure around the fullest part of your chest, keeping the tape horizontal.
+                                    </Text>
+                                </View>
+                                <View style={styles.measureItem}>
+                                    <View style={styles.measureBullet} />
+                                    <Text style={styles.measureText}>
+                                        <Text style={{ fontWeight: '700' }}>Waist: </Text>
+                                        Measure around the narrowest part of your waistline.
+                                    </Text>
+                                </View>
+                            </View>
+
+                            <TouchableOpacity
+                                style={styles.gotItBtn}
+                                onPress={() => setIsSizeGuideVisible(false)}
+                            >
+                                <Text style={styles.gotItText}>Got it</Text>
+                            </TouchableOpacity>
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
 
             {/* Premium Action Tab */}
             <View style={[styles.actionTab, { paddingBottom: Math.max(insets.bottom, 20) + 12, alignItems: 'center' }]}>
@@ -339,7 +538,7 @@ export default function ProductDetails() {
                     </TouchableOpacity>
                 </View>
             </View>
-        </View>
+        </View >
     );
 }
 
@@ -749,5 +948,231 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         color: '#FFF',
         letterSpacing: 0.5,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
+    },
+    guideModal: {
+        backgroundColor: '#FFF',
+        borderTopLeftRadius: 32,
+        borderTopRightRadius: 32,
+        padding: 24,
+        maxHeight: '85%',
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    modalTitle: {
+        fontSize: 22,
+        fontWeight: '800',
+        color: '#1A1A2E',
+    },
+    modalSubtitle: {
+        fontSize: 13,
+        color: '#6C757D',
+        marginTop: 4,
+        fontWeight: '500',
+    },
+    closeModalBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#F8F9FA',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    tableContainer: {
+        marginTop: 24,
+        borderWidth: 1,
+        borderColor: '#F1F3F5',
+        borderRadius: 16,
+        overflow: 'hidden',
+    },
+    tableHeader: {
+        flexDirection: 'row',
+        backgroundColor: '#1A1A2E',
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+    },
+    tableHeaderText: {
+        color: '#FFF',
+        fontSize: 13,
+        fontWeight: '700',
+        textAlign: 'center',
+    },
+    tableRow: {
+        flexDirection: 'row',
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F1F3F5',
+    },
+    tableCell: {
+        fontSize: 13,
+        color: '#495057',
+        textAlign: 'center',
+    },
+    howToMeasure: {
+        marginTop: 30,
+        backgroundColor: '#F8F9FA',
+        padding: 20,
+        borderRadius: 20,
+    },
+    measureTitle: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: '#1A1A2E',
+        marginBottom: 16,
+    },
+    measureItem: {
+        flexDirection: 'row',
+        marginBottom: 12,
+        gap: 12,
+    },
+    measureBullet: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: '#e94560',
+        marginTop: 7,
+    },
+    measureText: {
+        flex: 1,
+        fontSize: 14,
+        color: '#6C757D',
+        lineHeight: 20,
+    },
+    gotItBtn: {
+        backgroundColor: '#1A1A2E',
+        height: 56,
+        borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 30,
+        marginBottom: 10,
+    },
+    gotItText: {
+        color: '#FFF',
+        fontSize: 16,
+        fontWeight: '700',
+    },
+    accordionContainer: {
+        marginTop: 10,
+        marginBottom: 30,
+        borderTopWidth: 1,
+        borderColor: '#F1F3F5',
+    },
+    accordionItem: {
+        borderBottomWidth: 1,
+        borderColor: '#F1F3F5',
+    },
+    accordionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 20,
+    },
+    accordionTitle: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#1A1A2E',
+        letterSpacing: 0.5,
+    },
+    accordionContent: {
+        paddingBottom: 20,
+    },
+    accordionText: {
+        fontSize: 14,
+        color: '#6C757D',
+        lineHeight: 22,
+    },
+    colorVariantsGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 12,
+        marginTop: 15,
+    },
+    colorThumbnail: {
+        width: 80,
+        height: 100,
+        borderRadius: 12,
+        overflow: 'hidden',
+        borderWidth: 2,
+        borderColor: 'transparent',
+        backgroundColor: '#FFF',
+    },
+    colorThumbnailActive: {
+        borderColor: '#e94560',
+    },
+    colorThumbnailImage: {
+        width: '100%',
+        height: '100%',
+    },
+    recommendationsSection: {
+        marginTop: 20,
+        marginBottom: 10,
+    },
+    recommendationsScroll: {
+        marginLeft: -4, // Counteract card margin for alignment
+    },
+    recommendationsContent: {
+        paddingRight: 20,
+        gap: 15,
+        paddingVertical: 10,
+    },
+    recommendationCard: {
+        width: 160,
+        backgroundColor: '#FFF',
+        borderRadius: 18,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: '#F1F3F5',
+        ...Platform.select({
+            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5 },
+            android: { elevation: 2 },
+            web: { boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }
+        }),
+    },
+    recommendationImageContainer: {
+        width: '100%',
+        height: 140,
+        backgroundColor: '#F8F9FA',
+        position: 'relative',
+    },
+    recommendationImage: {
+        width: '100%',
+        height: '100%',
+    },
+    recommendationInfo: {
+        padding: 10,
+        gap: 4,
+    },
+    recommendationName: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#1A1A2E',
+    },
+    recommendationPrice: {
+        fontSize: 14,
+        fontWeight: '800',
+        color: '#e94560',
+    },
+    miniBadge: {
+        position: 'absolute',
+        top: 8,
+        left: 8,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+    },
+    miniBadgeText: {
+        color: '#FFF',
+        fontSize: 8,
+        fontWeight: '900',
     },
 });

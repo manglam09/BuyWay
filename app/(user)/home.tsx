@@ -237,6 +237,48 @@ export default function UserHome() {
                         </View>
                     </View>
 
+
+
+                    {/* Instagram Stories Style Product Features */}
+                    <View style={styles.storiesContainer}>
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.storiesScrollContent}
+                        >
+                            {[
+                                { id: 's1', name: 'New Drops', image: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=200&q=80', active: true },
+                                { id: 's2', name: 'Summer', image: 'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=200&q=80', active: true },
+                                { id: 's3', name: 'Party', image: 'https://images.unsplash.com/photo-1492707892479-7bc8d5a4ee93?w=200&q=80', active: false },
+                                { id: 's4', name: 'Casual', image: 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?w=200&q=80', active: false },
+                                { id: 's5', name: 'Luxe', image: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=200&q=80', active: true },
+                                { id: 's6', name: 'Street', image: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=200&q=80', active: false },
+                            ].map((story) => (
+                                <TouchableOpacity
+                                    key={story.id}
+                                    style={styles.storyItem}
+                                    onPress={() => showToast(`Opening ${story.name} stories...`, 'info')}
+                                >
+                                    <LinearGradient
+                                        colors={story.active ? ['#f09433', '#e95950', '#bc1888'] : ['#E9ECEF', '#CED4DA']}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                        style={styles.storyBorder}
+                                    >
+                                        <View style={styles.storyImageContainer}>
+                                            <Image
+                                                source={{ uri: story.image }}
+                                                style={styles.storyImage}
+                                                contentFit="cover"
+                                            />
+                                        </View>
+                                    </LinearGradient>
+                                    <Text style={styles.storyName} numberOfLines={1}>{story.name}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </View>
+
                     {/* Search Bar */}
                     <View style={styles.searchContainer}>
                         <Ionicons name="search" size={20} color="#6C757D" />
@@ -302,6 +344,30 @@ export default function UserHome() {
                             </ScrollView>
                         </View>
                     )}
+
+                    {/* Black Friday Banner */}
+                    <TouchableOpacity style={styles.blackFridayBanner} activeOpacity={0.9}>
+                        <LinearGradient
+                            colors={['#000000', '#1A1A1A']}
+                            style={styles.bfGradient}
+                        >
+                            <View style={styles.bfContent}>
+                                <View style={styles.bfBadge}>
+                                    <Text style={styles.bfBadgeText}>LIMITED TIME</Text>
+                                </View>
+                                <Text style={styles.bfTitle}>BLACK FRIDAY</Text>
+                                <Text style={styles.bfSubtitle}>MEGA SALE IS LIVE</Text>
+                                <View style={styles.bfTimerContainer}>
+                                    <Ionicons name="time-outline" size={14} color="#e94560" />
+                                    <Text style={styles.bfTimerText}>Ends in {formatTime(timeLeft)}</Text>
+                                </View>
+                            </View>
+                            <View style={styles.bfDiscountContainer}>
+                                <Text style={styles.bfDiscountVal}>80%</Text>
+                                <Text style={styles.bfOff}>OFF</Text>
+                            </View>
+                        </LinearGradient>
+                    </TouchableOpacity>
 
                     {/* New Arrivals Section */}
                     <View style={[styles.sectionHeader, { marginTop: 10 }]}>
@@ -567,6 +633,20 @@ export default function UserHome() {
                     </View>
                 </View>
             </Modal>
+
+            {/* AI Stylist FAB */}
+            <TouchableOpacity
+                style={styles.stylistFab}
+                onPress={() => router.push('/(user)/stylist')}
+            >
+                <LinearGradient
+                    colors={['#1A1A2E', '#e94560']}
+                    style={styles.fabGradient}
+                >
+                    <Ionicons name="sparkles" size={24} color="#fff" />
+                    <Text style={styles.fabText}>Stylist</Text>
+                </LinearGradient>
+            </TouchableOpacity>
 
             {/* Bottom Navigation */}
             <View style={[styles.bottomNav, { paddingBottom: insets.bottom + 8 }]}>
@@ -961,11 +1041,8 @@ const styles = StyleSheet.create({
         marginTop: 5,
     },
     productsGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'flex-start',
-        gap: COLUMN_GAP,
         width: '100%',
+        paddingBottom: 20,
     },
     productCard: {
         backgroundColor: '#FFF',
@@ -1238,4 +1315,137 @@ const styles = StyleSheet.create({
     maintenanceBadge: { marginTop: 40, paddingHorizontal: 15, paddingVertical: 8, borderRadius: 10, backgroundColor: 'rgba(254, 202, 87, 0.2)', borderWidth: 1, borderColor: '#feca57' },
     maintenanceBadgeText: { color: '#feca57', fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
     seeAll: { fontSize: 13, color: '#e94560', fontWeight: '700' },
+    stylistFab: {
+        position: 'absolute',
+        bottom: 90,
+        right: 20,
+        zIndex: 99,
+        overflow: 'hidden',
+        borderRadius: 30,
+        ...Platform.select({
+            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8 },
+            android: { elevation: 8 },
+            web: { boxShadow: '0 4px 15px rgba(233, 69, 96, 0.3)' }
+        }),
+    },
+    fabGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        gap: 8,
+    },
+    fabText: {
+        color: '#fff',
+        fontWeight: '800',
+        fontSize: 14,
+    },
+    blackFridayBanner: {
+        marginBottom: 25,
+        borderRadius: 24,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: '#333',
+    },
+    bfGradient: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        padding: 20,
+        alignItems: 'center',
+    },
+    bfContent: {
+        gap: 4,
+    },
+    bfBadge: {
+        backgroundColor: '#e94560',
+        alignSelf: 'flex-start',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 4,
+    },
+    bfBadgeText: {
+        color: '#FFF',
+        fontSize: 9,
+        fontWeight: '900',
+    },
+    bfTitle: {
+        fontSize: 28,
+        fontWeight: '900',
+        color: '#FFF',
+        letterSpacing: -1,
+    },
+    bfSubtitle: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#e94560',
+    },
+    bfTimerContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginTop: 4,
+    },
+    bfTimerText: {
+        color: '#ADADAD',
+        fontSize: 11,
+        fontWeight: '600',
+    },
+    bfDiscountContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#FFF',
+        width: 70,
+        height: 70,
+        borderRadius: 35,
+        transform: [{ rotate: '15deg' }],
+    },
+    bfDiscountVal: {
+        fontSize: 20,
+        fontWeight: '900',
+        color: '#000',
+    },
+    bfOff: {
+        fontSize: 10,
+        fontWeight: '900',
+        color: '#e94560',
+        marginTop: -4,
+    },
+    storiesContainer: {
+        marginBottom: 20,
+        width: '100%',
+    },
+    storiesScrollContent: {
+        paddingHorizontal: 10,
+        gap: 15,
+    },
+    storyItem: {
+        alignItems: 'center',
+        width: 75,
+    },
+    storyBorder: {
+        width: 68,
+        height: 68,
+        borderRadius: 34,
+        padding: 2,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    storyImageContainer: {
+        width: 62,
+        height: 62,
+        borderRadius: 31,
+        backgroundColor: '#FFF',
+        padding: 2,
+    },
+    storyImage: {
+        width: '100%',
+        height: '100%',
+        borderRadius: 29,
+    },
+    storyName: {
+        fontSize: 11,
+        fontWeight: '600',
+        color: '#1A1A2E',
+        marginTop: 6,
+    },
 });
