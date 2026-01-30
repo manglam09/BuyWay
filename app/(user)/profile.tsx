@@ -4,7 +4,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, Stack } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    Dimensions,
     Platform,
     ScrollView,
     StyleSheet,
@@ -12,15 +11,17 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    View,
+    useWindowDimensions,
+    View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useToast } from '../../components/ToastProvider';
 import authService from '../../services/authService';
 
-const { width } = Dimensions.get('window');
+const MAX_WIDTH = 1200;
 
 export default function ProfileScreen() {
+    const { width } = useWindowDimensions();
     const insets = useSafeAreaInsets();
     const { showToast } = useToast();
     const [isEditing, setIsEditing] = useState(false);
@@ -35,6 +36,8 @@ export default function ProfileScreen() {
     });
 
     const [notifications, setNotifications] = useState(true);
+
+    const contentWidth = Math.min(width - 40, MAX_WIDTH);
 
     const handleLogout = async () => {
         await authService.logout();
@@ -65,15 +68,15 @@ export default function ProfileScreen() {
 
             <ScrollView
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
+                contentContainerStyle={{ paddingBottom: insets.bottom + 100, alignItems: 'center' }}
             >
-                {/* Header Profile Section */}
-                <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
-                    <View style={styles.profileHeaderContent}>
+                <View style={[styles.header, { paddingTop: insets.top + 20, width: '100%', alignItems: 'center' }]}>
+                    <View style={[styles.profileHeaderContent, { width: contentWidth }]}>
                         <View style={styles.imageWrapper}>
                             <Image
                                 source={{ uri: userInfo.image }}
                                 style={styles.profileImage}
+                                contentFit="cover"
                                 transition={300}
                             />
                             <TouchableOpacity style={styles.editImageBtn}>
@@ -85,7 +88,7 @@ export default function ProfileScreen() {
 
                         <TouchableOpacity
                             style={styles.editProfileBtn}
-                            onPress={() => setIsEditing(!isEditing)}
+                            onPress={() => isEditing ? handleSave() : setIsEditing(true)}
                         >
                             <LinearGradient
                                 colors={isEditing ? ['#10b981', '#059669'] : ['#1A1A2E', '#16213E']}
@@ -98,82 +101,84 @@ export default function ProfileScreen() {
                     </View>
                 </View>
 
-                {/* Account Settings */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Account Information</Text>
-                    <View style={styles.card}>
-                        {isEditing ? (
-                            <View style={styles.editContainer}>
-                                <View style={styles.inputGroup}>
-                                    <Text style={styles.inputLabel}>Full Name</Text>
-                                    <TextInput
-                                        style={styles.input}
-                                        value={userInfo.name}
-                                        onChangeText={(txt) => setUserInfo(p => ({ ...p, name: txt }))}
-                                    />
+                <View style={[styles.mainWrapper, { width: contentWidth }]}>
+                    {/* Account Settings */}
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Account Information</Text>
+                        <View style={styles.card}>
+                            {isEditing ? (
+                                <View style={styles.editContainer}>
+                                    <View style={styles.inputGroup}>
+                                        <Text style={styles.inputLabel}>Full Name</Text>
+                                        <TextInput
+                                            style={styles.input}
+                                            value={userInfo.name}
+                                            onChangeText={(txt) => setUserInfo(p => ({ ...p, name: txt }))}
+                                        />
+                                    </View>
+                                    <View style={styles.inputGroup}>
+                                        <Text style={styles.inputLabel}>Phone Number</Text>
+                                        <TextInput
+                                            style={styles.input}
+                                            value={userInfo.phone}
+                                            onChangeText={(txt) => setUserInfo(p => ({ ...p, phone: txt }))}
+                                            keyboardType="phone-pad"
+                                        />
+                                    </View>
+                                    <View style={styles.inputGroup}>
+                                        <Text style={styles.inputLabel}>Delivery Address</Text>
+                                        <TextInput
+                                            style={[styles.input, styles.textArea]}
+                                            value={userInfo.address}
+                                            onChangeText={(txt) => setUserInfo(p => ({ ...p, address: txt }))}
+                                            multiline
+                                        />
+                                    </View>
                                 </View>
-                                <View style={styles.inputGroup}>
-                                    <Text style={styles.inputLabel}>Phone Number</Text>
-                                    <TextInput
-                                        style={styles.input}
-                                        value={userInfo.phone}
-                                        onChangeText={(txt) => setUserInfo(p => ({ ...p, phone: txt }))}
-                                        keyboardType="phone-pad"
-                                    />
-                                </View>
-                                <View style={styles.inputGroup}>
-                                    <Text style={styles.inputLabel}>Delivery Address</Text>
-                                    <TextInput
-                                        style={[styles.input, styles.textArea]}
-                                        value={userInfo.address}
-                                        onChangeText={(txt) => setUserInfo(p => ({ ...p, address: txt }))}
-                                        multiline
-                                    />
-                                </View>
-                            </View>
-                        ) : (
-                            <>
-                                <ProfileOption icon="person-outline" label="Full Name" value={userInfo.name} />
-                                <ProfileOption icon="call-outline" label="Phone Number" value={userInfo.phone} />
-                                <ProfileOption icon="location-outline" label="Address" value={userInfo.address} />
-                            </>
-                        )}
+                            ) : (
+                                <>
+                                    <ProfileOption icon="person-outline" label="Full Name" value={userInfo.name} />
+                                    <ProfileOption icon="call-outline" label="Phone Number" value={userInfo.phone} />
+                                    <ProfileOption icon="location-outline" label="Address" value={userInfo.address} />
+                                </>
+                            )}
+                        </View>
                     </View>
-                </View>
 
-                {/* Preferences */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Preferences</Text>
-                    <View style={styles.card}>
-                        <View style={styles.optionItem}>
-                            <View style={[styles.optionIconContainer, { backgroundColor: '#3b82f610' }]}>
-                                <Ionicons name="notifications-outline" size={22} color="#3b82f6" />
+                    {/* Preferences */}
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Preferences</Text>
+                        <View style={styles.card}>
+                            <View style={styles.optionItem}>
+                                <View style={[styles.optionIconContainer, { backgroundColor: '#3b82f610' }]}>
+                                    <Ionicons name="notifications-outline" size={22} color="#3b82f6" />
+                                </View>
+                                <View style={styles.optionTextContainer}>
+                                    <Text style={styles.optionLabel}>Notifications</Text>
+                                </View>
+                                <Switch
+                                    value={notifications}
+                                    onValueChange={setNotifications}
+                                    trackColor={{ false: '#E9ECEF', true: '#10b981' }}
+                                />
                             </View>
-                            <View style={styles.optionTextContainer}>
-                                <Text style={styles.optionLabel}>Notifications</Text>
-                            </View>
-                            <Switch
-                                value={notifications}
-                                onValueChange={setNotifications}
-                                trackColor={{ false: '#E9ECEF', true: '#10b981' }}
+                            <ProfileOption icon="earth-outline" label="Language" value="English (US)" />
+                            <ProfileOption icon="card-outline" label="Payment Methods" value="Visa **** 4242" />
+                        </View>
+                    </View>
+
+                    {/* Support & Legal */}
+                    <View style={styles.section}>
+                        <View style={styles.card}>
+                            <ProfileOption icon="help-circle-outline" label="Help Center" />
+                            <ProfileOption icon="shield-checkmark-outline" label="Privacy Policy" />
+                            <ProfileOption
+                                icon="log-out-outline"
+                                label="Logout"
+                                onPress={handleLogout}
+                                color="#ef4444"
                             />
                         </View>
-                        <ProfileOption icon="earth-outline" label="Language" value="English (US)" />
-                        <ProfileOption icon="card-outline" label="Payment Methods" value="Visa **** 4242" />
-                    </View>
-                </View>
-
-                {/* Support & Legal */}
-                <View style={styles.section}>
-                    <View style={styles.card}>
-                        <ProfileOption icon="help-circle-outline" label="Help Center" />
-                        <ProfileOption icon="shield-checkmark-outline" label="Privacy Policy" />
-                        <ProfileOption
-                            icon="log-out-outline"
-                            label="Logout"
-                            onPress={handleLogout}
-                            color="#ef4444"
-                        />
                     </View>
                 </View>
             </ScrollView>
@@ -214,6 +219,7 @@ const styles = StyleSheet.create({
         ...Platform.select({
             ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.05, shadowRadius: 15 },
             android: { elevation: 5 },
+            web: { boxShadow: '0 10px 15px rgba(0,0,0,0.05)' }
         }),
     },
     profileHeaderContent: {
@@ -270,6 +276,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '700',
     },
+    mainWrapper: {},
     section: {
         marginTop: 25,
         paddingHorizontal: 20,
@@ -288,6 +295,7 @@ const styles = StyleSheet.create({
         ...Platform.select({
             ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.03, shadowRadius: 10 },
             android: { elevation: 2 },
+            web: { boxShadow: '0 4px 10px rgba(0,0,0,0.03)' }
         }),
     },
     optionItem: {
@@ -354,10 +362,9 @@ const styles = StyleSheet.create({
         borderTopColor: '#F1F1F1',
         paddingTop: 12,
         paddingHorizontal: 24,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
+        ...Platform.select({
+            web: { boxShadow: '0 -2px 10px rgba(0,0,0,0.05)' }
+        }),
         elevation: 10,
     },
     navItem: {

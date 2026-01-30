@@ -1,15 +1,16 @@
+import { ImageZoomModal } from '@/components/ImageZoomModal';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    Dimensions,
     Platform,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
+    useWindowDimensions,
     View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,10 +19,11 @@ import { mockProducts, Product, Review } from '../../../data/mockProducts';
 import cartService from '../../../services/cartService';
 import wishlistService from '../../../services/wishlistService';
 
-const { width } = Dimensions.get('window');
+const MAX_WIDTH = 1200;
 
 export default function ProductDetails() {
     const { id } = useLocalSearchParams();
+    const { width } = useWindowDimensions();
     const insets = useSafeAreaInsets();
     const { showToast } = useToast();
     const product = mockProducts.find((p: Product) => p.id === id);
@@ -29,6 +31,7 @@ export default function ProductDetails() {
     const [selectedSize, setSelectedSize] = useState<string | null>(null);
     const [isWishlisted, setIsWishlisted] = useState(wishlistService.isInWishlist(product?.id || ''));
     const [cartCount, setCartCount] = useState(cartService.getItems().length);
+    const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
 
     useEffect(() => {
         const unsubscribeWishlist = wishlistService.subscribe(() => {
@@ -44,6 +47,9 @@ export default function ProductDetails() {
             unsubscribeCart();
         };
     }, [product?.id]);
+
+    const contentWidth = Math.min(width - 40, MAX_WIDTH);
+    const isLargeScreen = width > 1000;
 
     if (!product) {
         return (
@@ -101,189 +107,213 @@ export default function ProductDetails() {
 
             <ScrollView
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingBottom: insets.bottom + 110 }}
+                contentContainerStyle={{ paddingBottom: insets.bottom + 110, alignItems: 'center' }}
             >
-                {/* Immersive Image Header */}
-                <View style={[styles.imageContainer, { backgroundColor: bgColor }]}>
-                    <View style={[styles.topActions, { top: insets.top + 10 }]}>
+                {/* Header Actions - Fixed for both mobile & desktop */}
+                <View style={[styles.topActions, { top: insets.top + 10, width: contentWidth }]}>
+                    <TouchableOpacity
+                        style={styles.headerIconButton}
+                        onPress={() => router.back()}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons name="chevron-back" size={24} color="#1A1A2E" />
+                    </TouchableOpacity>
+                    <View style={styles.rightHeaderActions}>
                         <TouchableOpacity
                             style={styles.headerIconButton}
-                            onPress={() => router.back()}
+                            onPress={() => router.push({ pathname: "/(user)/cart" })}
                             activeOpacity={0.7}
                         >
-                            <Ionicons name="chevron-back" size={24} color="#1A1A2E" />
-                        </TouchableOpacity>
-                        <View style={styles.rightHeaderActions}>
-                            <TouchableOpacity
-                                style={styles.headerIconButton}
-                                onPress={() => router.push({ pathname: "/(user)/cart" })}
-                                activeOpacity={0.7}
-                            >
-                                <Ionicons name="cart-outline" size={24} color="#1A1A2E" />
-                                {cartCount > 0 && (
-                                    <View style={styles.headerBadge}>
-                                        <Text style={styles.headerBadgeText}>{cartCount}</Text>
-                                    </View>
-                                )}
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.headerIconButton}
-                                onPress={handleWishlistToggle}
-                                activeOpacity={0.7}
-                            >
-                                <Ionicons
-                                    name={isWishlisted ? "heart" : "heart-outline"}
-                                    size={24}
-                                    color={isWishlisted ? "#e94560" : "#1A1A2E"}
-                                />
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-
-                    <Image
-                        source={{ uri: product.image }}
-                        style={styles.productImage}
-                        contentFit="cover"
-                        transition={500}
-                        placeholder={{ blurhash: 'L6PZfS.AyE_p.AyD?jt7D%OO2ghu' }}
-                    />
-
-                    {product.badge && (
-                        <View style={[styles.badge, styles[`badge${product.badge}` as keyof typeof styles] as any]}>
-                            <Text style={styles.badgeText}>{product.badge.toUpperCase()}</Text>
-                        </View>
-                    )}
-
-                    <LinearGradient
-                        colors={['transparent', 'rgba(248, 249, 250, 0.2)', 'rgba(248, 249, 250, 0.8)', '#F8F9FA']}
-                        style={styles.imageOverlay}
-                    />
-                </View>
-
-                {/* Content Section */}
-                <View style={styles.contentSection}>
-                    <View style={styles.mainInfo}>
-                        <View style={styles.categoryBadge}>
-                            <Text style={styles.categoryText}>{product.category}</Text>
-                        </View>
-                        <Text style={styles.productName}>{product.name}</Text>
-                        <View style={styles.priceRow}>
-                            <Text style={styles.currentPrice}>₹{product.price.toLocaleString()}</Text>
-                            {product.originalPrice && (
-                                <Text style={styles.oldPrice}>₹{product.originalPrice.toLocaleString()}</Text>
-                            )}
-                            {product.originalPrice && (
-                                <View style={styles.discountBadge}>
-                                    <Text style={styles.discountText}>
-                                        {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
-                                    </Text>
+                            <Ionicons name="cart-outline" size={24} color="#1A1A2E" />
+                            {cartCount > 0 && (
+                                <View style={styles.headerBadge}>
+                                    <Text style={styles.headerBadgeText}>{cartCount}</Text>
                                 </View>
                             )}
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.headerIconButton}
+                            onPress={handleWishlistToggle}
+                            activeOpacity={0.7}
+                        >
+                            <Ionicons
+                                name={isWishlisted ? "heart" : "heart-outline"}
+                                size={24}
+                                color={isWishlisted ? "#e94560" : "#1A1A2E"}
+                            />
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
+                {/* Main Product Layout */}
+                <View style={[styles.mainLayout, { width: contentWidth, flexDirection: isLargeScreen ? 'row' : 'column', gap: 40 }]}>
+
+                    {/* Image Section */}
+                    <View style={[styles.imageWrapper, { width: isLargeScreen ? '50%' : '100%' }]}>
+                        <View style={[styles.imageContainer, { backgroundColor: bgColor, borderRadius: 30, overflow: 'hidden' }]}>
+                            <TouchableOpacity
+                                style={styles.imageTapArea}
+                                activeOpacity={0.9}
+                                onPress={() => setIsImageViewerVisible(true)}
+                            >
+                                <Image
+                                    source={{ uri: product.image }}
+                                    style={styles.productImage}
+                                    contentFit="contain"
+                                    transition={500}
+                                />
+                                <View style={styles.zoomHint}>
+                                    <Ionicons name="expand-outline" size={14} color="rgba(26,26,46,0.4)" />
+                                    <Text style={styles.zoomHintText}>Tap to zoom</Text>
+                                </View>
+                            </TouchableOpacity>
+
+                            {product.badge && (
+                                <View style={[styles.badge, styles[`badge${product.badge}` as keyof typeof styles] as any]}>
+                                    <Text style={styles.badgeText}>{product.badge.toUpperCase()}</Text>
+                                </View>
+                            )}
+
+                            <LinearGradient
+                                colors={['transparent', 'rgba(248, 249, 250, 0.2)', 'rgba(248, 249, 250, 0.8)', '#F8F9FA']}
+                                style={styles.imageOverlay}
+                            />
                         </View>
                     </View>
 
-                    {/* Stats Bar */}
-                    <View style={styles.statsBar}>
-                        <View style={styles.statItem}>
-                            <Ionicons name="star" size={16} color="#feca57" />
-                            <Text style={styles.statLabel}>{product.rating}</Text>
-                            <Text style={styles.statSub}>Rating</Text>
-                        </View>
-                        <View style={styles.statDivider} />
-                        <View style={styles.statItem}>
-                            <Ionicons name="chatbubble-outline" size={16} color="#6C757D" />
-                            <Text style={styles.statLabel}>{product.reviews}</Text>
-                            <Text style={styles.statSub}>Reviews</Text>
-                        </View>
-                        <View style={styles.statDivider} />
-                        <View style={styles.statItem}>
-                            <Ionicons name="shield-checkmark-outline" size={16} color="#10b981" />
-                            <Text style={styles.statLabel}>Quality</Text>
-                            <Text style={styles.statSub}>Assured</Text>
-                        </View>
-                    </View>
-
-                    {/* Size Selector */}
-                    {product.sizes && (
-                        <View style={styles.section}>
-                            <View style={styles.sectionHeader}>
-                                <Text style={styles.sectionTitle}>Select Size</Text>
-                                <TouchableOpacity>
-                                    <Text style={styles.guideText}>Size Guide</Text>
-                                </TouchableOpacity>
+                    {/* Info Section */}
+                    <View style={[styles.infoWrapper, { width: isLargeScreen ? '50%' : '100%', paddingTop: isLargeScreen ? 60 : 0 }]}>
+                        <View style={styles.contentSection}>
+                            <View style={styles.mainInfo}>
+                                <View style={styles.categoryBadge}>
+                                    <Text style={styles.categoryText}>{product.category}</Text>
+                                </View>
+                                <Text style={styles.productName}>{product.name}</Text>
+                                <View style={styles.priceRow}>
+                                    <Text style={styles.currentPrice}>₹{product.price.toLocaleString()}</Text>
+                                    {product.originalPrice && (
+                                        <Text style={styles.oldPrice}>₹{product.originalPrice.toLocaleString()}</Text>
+                                    )}
+                                    {product.originalPrice && (
+                                        <View style={styles.discountBadge}>
+                                            <Text style={styles.discountText}>
+                                                {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
+                                            </Text>
+                                        </View>
+                                    )}
+                                </View>
                             </View>
-                            <View style={styles.sizeGrid}>
-                                {product.sizes.map((size: string) => (
-                                    <TouchableOpacity
-                                        key={size}
-                                        style={[
-                                            styles.sizeBox,
-                                            selectedSize === size && styles.sizeBoxActive
-                                        ]}
-                                        onPress={() => setSelectedSize(size)}
-                                        activeOpacity={0.6}
-                                    >
-                                        <Text style={[
-                                            styles.sizeLabel,
-                                            selectedSize === size && styles.sizeLabelActive
-                                        ]}>{size}</Text>
+
+                            {/* Stats Bar */}
+                            <View style={styles.statsBar}>
+                                <View style={styles.statItem}>
+                                    <Ionicons name="star" size={16} color="#feca57" />
+                                    <Text style={styles.statLabel}>{product.rating}</Text>
+                                    <Text style={styles.statSub}>Rating</Text>
+                                </View>
+                                <View style={styles.statDivider} />
+                                <View style={styles.statItem}>
+                                    <Ionicons name="chatbubble-outline" size={16} color="#6C757D" />
+                                    <Text style={styles.statLabel}>{product.reviews}</Text>
+                                    <Text style={styles.statSub}>Reviews</Text>
+                                </View>
+                                <View style={styles.statDivider} />
+                                <View style={styles.statItem}>
+                                    <Ionicons name="shield-checkmark-outline" size={16} color="#10b981" />
+                                    <Text style={styles.statLabel}>Quality</Text>
+                                    <Text style={styles.statSub}>Assured</Text>
+                                </View>
+                            </View>
+
+                            {/* Size Selector */}
+                            {product.sizes && (
+                                <View style={styles.section}>
+                                    <View style={styles.sectionHeader}>
+                                        <Text style={styles.sectionTitle}>Select Size</Text>
+                                        <TouchableOpacity>
+                                            <Text style={styles.guideText}>Size Guide</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                    <View style={styles.sizeGrid}>
+                                        {product.sizes.map((size: string) => (
+                                            <TouchableOpacity
+                                                key={size}
+                                                style={[
+                                                    styles.sizeBox,
+                                                    selectedSize === size && styles.sizeBoxActive
+                                                ]}
+                                                onPress={() => setSelectedSize(size)}
+                                                activeOpacity={0.6}
+                                            >
+                                                <Text style={[
+                                                    styles.sizeLabel,
+                                                    selectedSize === size && styles.sizeLabelActive
+                                                ]}>{size}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                </View>
+                            )}
+
+                            {/* Description */}
+                            <View style={styles.section}>
+                                <Text style={styles.sectionTitle}>Description</Text>
+                                <Text style={styles.descriptionText}>{product.description}</Text>
+                            </View>
+
+                            {/* Detailed Reviews */}
+                            <View style={styles.section}>
+                                <View style={styles.sectionHeader}>
+                                    <Text style={styles.sectionTitle}>Customer Reviews</Text>
+                                    <TouchableOpacity style={styles.writeReviewButton}>
+                                        <Text style={styles.writeReviewText}>Write a review</Text>
                                     </TouchableOpacity>
+                                </View>
+
+                                {product.detailedReviews?.map((review: Review) => (
+                                    <View key={review.id} style={styles.reviewCard}>
+                                        <View style={styles.reviewUserRow}>
+                                            <View style={styles.avatarContainer}>
+                                                <LinearGradient
+                                                    colors={['#E0F2FE', '#BAE6FD']}
+                                                    style={styles.avatarGradient}
+                                                >
+                                                    <Text style={styles.avatarInitial}>{review.userName[0]}</Text>
+                                                </LinearGradient>
+                                            </View>
+                                            <View style={styles.reviewUserInfo}>
+                                                <Text style={styles.reviewUserName}>{review.userName}</Text>
+                                                <View style={styles.reviewRatingRow}>
+                                                    {[1, 2, 3, 4, 5].map((s) => (
+                                                        <Ionicons
+                                                            key={s}
+                                                            name={s <= review.rating ? "star" : "star-outline"}
+                                                            size={10}
+                                                            color="#feca57"
+                                                        />
+                                                    ))}
+                                                    <Text style={styles.reviewDate}> • {review.date}</Text>
+                                                </View>
+                                            </View>
+                                        </View>
+                                        <Text style={styles.reviewText}>{review.comment}</Text>
+                                    </View>
                                 ))}
                             </View>
                         </View>
-                    )}
-
-                    {/* Description */}
-                    <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Description</Text>
-                        <Text style={styles.descriptionText}>{product.description}</Text>
-                    </View>
-
-                    {/* Detailed Reviews */}
-                    <View style={styles.section}>
-                        <View style={styles.sectionHeader}>
-                            <Text style={styles.sectionTitle}>Customer Reviews</Text>
-                            <TouchableOpacity style={styles.writeReviewButton}>
-                                <Text style={styles.writeReviewText}>Write a review</Text>
-                            </TouchableOpacity>
-                        </View>
-
-                        {product.detailedReviews?.map((review: Review) => (
-                            <View key={review.id} style={styles.reviewCard}>
-                                <View style={styles.reviewUserRow}>
-                                    <View style={styles.avatarContainer}>
-                                        <LinearGradient
-                                            colors={['#E0F2FE', '#BAE6FD']}
-                                            style={styles.avatarGradient}
-                                        >
-                                            <Text style={styles.avatarInitial}>{review.userName[0]}</Text>
-                                        </LinearGradient>
-                                    </View>
-                                    <View style={styles.reviewUserInfo}>
-                                        <Text style={styles.reviewUserName}>{review.userName}</Text>
-                                        <View style={styles.reviewRatingRow}>
-                                            {[1, 2, 3, 4, 5].map((s) => (
-                                                <Ionicons
-                                                    key={s}
-                                                    name={s <= review.rating ? "star" : "star-outline"}
-                                                    size={10}
-                                                    color="#feca57"
-                                                />
-                                            ))}
-                                            <Text style={styles.reviewDate}> • {review.date}</Text>
-                                        </View>
-                                    </View>
-                                </View>
-                                <Text style={styles.reviewText}>{review.comment}</Text>
-                            </View>
-                        ))}
                     </View>
                 </View>
             </ScrollView>
 
+            <ImageZoomModal
+                imageUri={product.image}
+                isVisible={isImageViewerVisible}
+                onClose={() => setIsImageViewerVisible(false)}
+            />
+
             {/* Premium Action Tab */}
-            <View style={[styles.actionTab, { paddingBottom: Math.max(insets.bottom, 20) + 12 }]}>
-                <View style={styles.tabContent}>
+            <View style={[styles.actionTab, { paddingBottom: Math.max(insets.bottom, 20) + 12, alignItems: 'center' }]}>
+                <View style={[styles.tabContent, { width: contentWidth }]}>
                     <TouchableOpacity
                         style={styles.secondaryActionButton}
                         activeOpacity={0.8}
@@ -341,21 +371,24 @@ const styles = StyleSheet.create({
         color: '#FFF',
         fontWeight: '600',
     },
+    mainLayout: {
+        marginTop: 60,
+    },
+    imageWrapper: {
+        zIndex: 5,
+    },
     imageContainer: {
-        width: width,
-        height: width * 1.3,
+        width: '100%',
+        aspectRatio: 0.8,
         justifyContent: 'center',
         alignItems: 'center',
         position: 'relative',
     },
     topActions: {
         position: 'absolute',
-        top: 0,
-        left: 20,
-        right: 20,
+        zIndex: 10,
         flexDirection: 'row',
         justifyContent: 'space-between',
-        zIndex: 10,
     },
     rightHeaderActions: {
         flexDirection: 'row',
@@ -385,20 +418,37 @@ const styles = StyleSheet.create({
         height: 48,
         borderRadius: 24,
         backgroundColor: 'rgba(255,255,255,0.7)',
-        backdropFilter: 'blur(10px)',
         justifyContent: 'center',
         alignItems: 'center',
         ...Platform.select({
-            ios: {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.1,
-                shadowRadius: 8,
-            },
-            android: {
-                elevation: 4,
-            },
+            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8 },
+            android: { elevation: 4 },
+            web: { boxShadow: '0 4px 8px rgba(0,0,0,0.1)', backdropFilter: 'blur(10px)' }
         }),
+    },
+    imageTapArea: {
+        width: '100%',
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    zoomHint: {
+        position: 'absolute',
+        bottom: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: 'rgba(255,255,255,0.5)',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+    },
+    zoomHintText: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: 'rgba(26,26,46,0.5)',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
     },
     imageOverlay: {
         position: 'absolute',
@@ -410,11 +460,10 @@ const styles = StyleSheet.create({
     productImage: {
         width: '85%',
         height: '85%',
-        resizeMode: 'contain',
     },
     badge: {
         position: 'absolute',
-        bottom: 110,
+        top: 24,
         right: 24,
         paddingHorizontal: 14,
         paddingVertical: 6,
@@ -422,6 +471,7 @@ const styles = StyleSheet.create({
         ...Platform.select({
             ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
             android: { elevation: 3 },
+            web: { boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }
         }),
     },
     badgenew: { backgroundColor: '#10b981' },
@@ -433,9 +483,9 @@ const styles = StyleSheet.create({
         color: '#fff',
         letterSpacing: 0.5,
     },
+    infoWrapper: {},
     contentSection: {
-        paddingHorizontal: 24,
-        marginTop: -10,
+        paddingHorizontal: 0,
     },
     mainInfo: {
         marginBottom: 24,
@@ -499,6 +549,7 @@ const styles = StyleSheet.create({
         ...Platform.select({
             ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 10 },
             android: { elevation: 2 },
+            web: { boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }
         }),
     },
     statItem: {
@@ -562,6 +613,7 @@ const styles = StyleSheet.create({
         ...Platform.select({
             ios: { shadowColor: '#1A1A2E', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
             android: { elevation: 6 },
+            web: { boxShadow: '0 4px 8px rgba(26, 26, 46, 0.3)' }
         }),
     },
     sizeLabel: {
@@ -656,6 +708,7 @@ const styles = StyleSheet.create({
         ...Platform.select({
             ios: { shadowColor: '#000', shadowOffset: { width: 0, height: -10 }, shadowOpacity: 0.05, shadowRadius: 15 },
             android: { elevation: 20 },
+            web: { boxShadow: '0 -10px 15px rgba(0,0,0,0.05)' }
         }),
     },
     tabContent: {
@@ -681,6 +734,7 @@ const styles = StyleSheet.create({
         ...Platform.select({
             ios: { shadowColor: '#1A1A2E', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 12 },
             android: { elevation: 8 },
+            web: { boxShadow: '0 8px 12px rgba(26, 26, 46, 0.2)' }
         }),
     },
     actionGradient: {
@@ -695,8 +749,5 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         color: '#FFF',
         letterSpacing: 0.5,
-    },
-    btnIcon: {
-        marginTop: -2,
     },
 });

@@ -1,16 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, Stack } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    Dimensions,
     FlatList,
-    Image,
     Platform,
     StyleSheet,
     Text,
     TouchableOpacity,
-    View,
+    useWindowDimensions,
+    View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useToast } from '../../components/ToastProvider';
@@ -18,10 +18,11 @@ import { Product } from '../../data/mockProducts';
 import cartService from '../../services/cartService';
 import wishlistService from '../../services/wishlistService';
 
-const { width } = Dimensions.get('window');
-const COLUMN_WIDTH = (width - 48 - 16) / 2;
+const MAX_WIDTH = 1200;
+const COLUMN_GAP = 20;
 
 export default function WishlistScreen() {
+    const { width } = useWindowDimensions();
     const insets = useSafeAreaInsets();
     const { showToast } = useToast();
     const [wishlistItems, setWishlistItems] = useState<Product[]>([]);
@@ -32,6 +33,15 @@ export default function WishlistScreen() {
         });
         return unsubscribe;
     }, []);
+
+    // Responsive grid calculation
+    const isLargeScreen = width > 768;
+    const isTablet = width > 480 && width <= 768;
+    const numColumns = isLargeScreen ? 4 : 2;
+    const contentWidth = Math.min(width, MAX_WIDTH);
+    const horizontalMargin = width > 480 ? 40 : 20;
+    const availableWidth = contentWidth - horizontalMargin;
+    const cardWidth = (availableWidth - (COLUMN_GAP * (numColumns - 1))) / numColumns;
 
     const getCategoryColor = (category: string) => {
         switch (category) {
@@ -47,7 +57,7 @@ export default function WishlistScreen() {
 
         return (
             <TouchableOpacity
-                style={styles.card}
+                style={[styles.card, { width: cardWidth }]}
                 activeOpacity={0.9}
                 onPress={() => router.push({
                     pathname: "/(user)/product/[id]",
@@ -55,7 +65,7 @@ export default function WishlistScreen() {
                 })}
             >
                 <View style={[styles.imageContainer, { backgroundColor: bgColor }]}>
-                    <Image source={{ uri: item.image }} style={styles.image} />
+                    <Image source={{ uri: item.image }} style={styles.image} contentFit="contain" />
                     <TouchableOpacity
                         style={styles.removeIconBtn}
                         onPress={(e) => {
@@ -116,63 +126,67 @@ export default function WishlistScreen() {
                 }}
             />
 
-            {wishlistItems.length === 0 ? (
-                <View style={styles.emptyContainer}>
-                    <View style={styles.emptyIllustration}>
-                        <LinearGradient
-                            colors={['#FFF', '#F1F3F5']}
-                            style={styles.emptyCircle}
+            <View style={{ flex: 1, alignItems: 'center' }}>
+                {wishlistItems.length === 0 ? (
+                    <View style={[styles.emptyContainer, { width: contentWidth }]}>
+                        <View style={styles.emptyIllustration}>
+                            <LinearGradient
+                                colors={['#FFF', '#F1F3F5']}
+                                style={styles.emptyCircle}
+                            >
+                                <Ionicons name="heart-outline" size={60} color="#e94560" />
+                            </LinearGradient>
+                            <View style={styles.emptyDash1} />
+                            <View style={styles.emptyDash2} />
+                        </View>
+                        <Text style={styles.emptyTitle}>Nothing here yet</Text>
+                        <Text style={styles.emptySubtitle}>Start hearting your favorites to see them here!</Text>
+                        <TouchableOpacity
+                            style={styles.exploreBtn}
+                            onPress={() => router.replace('/(user)/home')}
                         >
-                            <Ionicons name="heart-outline" size={60} color="#e94560" />
-                        </LinearGradient>
-                        <View style={styles.emptyDash1} />
-                        <View style={styles.emptyDash2} />
+                            <Text style={styles.exploreBtnText}>Go Shopping</Text>
+                            <Ionicons name="arrow-forward" size={18} color="#FFF" />
+                        </TouchableOpacity>
                     </View>
-                    <Text style={styles.emptyTitle}>Nothing here yet</Text>
-                    <Text style={styles.emptySubtitle}>Start hearting your favorites to see them here!</Text>
-                    <TouchableOpacity
-                        style={styles.exploreBtn}
-                        onPress={() => router.replace('/(user)/home')}
-                    >
-                        <Text style={styles.exploreBtnText}>Go Shopping</Text>
-                        <Ionicons name="arrow-forward" size={18} color="#FFF" />
-                    </TouchableOpacity>
-                </View>
-            ) : (
-                <>
-                    <FlatList
-                        data={wishlistItems}
-                        renderItem={renderWishlistItem}
-                        keyExtractor={(item) => item.id}
-                        numColumns={2}
-                        columnWrapperStyle={styles.row}
-                        contentContainerStyle={[
-                            styles.listContent,
-                            { paddingBottom: insets.bottom + 100 }
-                        ]}
-                        showsVerticalScrollIndicator={false}
-                    />
+                ) : (
+                    <>
+                        <FlatList
+                            data={wishlistItems}
+                            renderItem={renderWishlistItem}
+                            keyExtractor={(item) => item.id}
+                            numColumns={numColumns}
+                            key={`numColumns-${numColumns}`}
+                            columnWrapperStyle={numColumns > 1 ? { gap: COLUMN_GAP } : undefined}
+                            style={{ width: contentWidth, alignSelf: 'center' }}
+                            contentContainerStyle={[
+                                styles.listContent,
+                                { paddingBottom: insets.bottom + 120, paddingHorizontal: horizontalMargin / 2 }
+                            ]}
+                            showsVerticalScrollIndicator={false}
+                        />
 
-                    {/* Bottom Checkout Bar */}
-                    <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 20) + 10 }]}>
-                        <LinearGradient
-                            colors={['#1A1A2E', '#16213E']}
-                            style={styles.checkoutBarGradient}
-                        >
-                            <View style={styles.totalInfo}>
-                                <Text style={styles.totalLabel}>Subtotal</Text>
-                                <Text style={styles.totalPrice}>
-                                    ₹{wishlistItems.reduce((acc, curr) => acc + curr.price, 0).toLocaleString()}
-                                </Text>
-                            </View>
-                            <TouchableOpacity style={styles.mainCheckoutBtn} activeOpacity={0.8}>
-                                <Text style={styles.mainCheckoutBtnText}>Checkout All</Text>
-                                <Ionicons name="chevron-forward" size={18} color="#1A1A2E" />
-                            </TouchableOpacity>
-                        </LinearGradient>
-                    </View>
-                </>
-            )}
+                        {/* Bottom Checkout Bar */}
+                        <View style={[styles.bottomBar, { width: width, paddingBottom: Math.max(insets.bottom, 20) + 10, alignItems: 'center' }]}>
+                            <LinearGradient
+                                colors={['#1A1A2E', '#16213E']}
+                                style={[styles.checkoutBarGradient, { width: contentWidth - horizontalMargin }]}
+                            >
+                                <View style={styles.totalInfo}>
+                                    <Text style={styles.totalLabel}>Subtotal</Text>
+                                    <Text style={styles.totalPrice}>
+                                        ₹{wishlistItems.reduce((acc, curr) => acc + curr.price, 0).toLocaleString()}
+                                    </Text>
+                                </View>
+                                <TouchableOpacity style={styles.mainCheckoutBtn} activeOpacity={0.8}>
+                                    <Text style={styles.mainCheckoutBtnText}>Checkout All</Text>
+                                    <Ionicons name="chevron-forward" size={18} color="#1A1A2E" />
+                                </TouchableOpacity>
+                            </LinearGradient>
+                        </View>
+                    </>
+                )}
+            </View>
         </View>
     );
 }
@@ -195,26 +209,22 @@ const styles = StyleSheet.create({
         color: '#6C757D',
     },
     listContent: {
-        padding: 24,
-    },
-    row: {
-        justifyContent: 'space-between',
-        marginBottom: 20,
+        paddingVertical: 24,
     },
     card: {
-        width: COLUMN_WIDTH,
         backgroundColor: '#FFF',
         borderRadius: 24,
         overflow: 'hidden',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.04,
-        shadowRadius: 12,
-        elevation: 3,
+        marginBottom: 20,
+        ...Platform.select({
+            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.04, shadowRadius: 12 },
+            android: { elevation: 3 },
+            web: { boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }
+        }),
     },
     imageContainer: {
         width: '100%',
-        height: COLUMN_WIDTH * 1.2,
+        aspectRatio: 0.85,
         justifyContent: 'center',
         alignItems: 'center',
         position: 'relative',
@@ -222,7 +232,6 @@ const styles = StyleSheet.create({
     image: {
         width: '80%',
         height: '80%',
-        resizeMode: 'contain',
     },
     removeIconBtn: {
         position: 'absolute',
@@ -302,11 +311,11 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         padding: 16,
         borderRadius: 24,
-        shadowColor: '#1A1A2E',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.2,
-        shadowRadius: 20,
-        elevation: 10,
+        ...Platform.select({
+            ios: { shadowColor: '#1A1A2E', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.2, shadowRadius: 20 },
+            android: { elevation: 10 },
+            web: { boxShadow: '0 10px 20px rgba(26, 26, 46, 0.2)' }
+        }),
     },
     totalInfo: {
         flex: 1,
@@ -341,7 +350,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         padding: 40,
-        marginTop: -50,
+        marginTop: 50,
     },
     emptyIllustration: {
         width: 140,
@@ -357,11 +366,11 @@ const styles = StyleSheet.create({
         borderRadius: 60,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.05,
-        shadowRadius: 20,
-        elevation: 5,
+        ...Platform.select({
+            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.05, shadowRadius: 20 },
+            android: { elevation: 5 },
+            web: { boxShadow: '0 10px 20px rgba(0,0,0,0.05)' }
+        }),
     },
     emptyDash1: {
         position: 'absolute',
@@ -408,6 +417,7 @@ const styles = StyleSheet.create({
         ...Platform.select({
             ios: { shadowColor: '#1A1A2E', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 12 },
             android: { elevation: 6 },
+            web: { boxShadow: '0 8px 12px rgba(26, 26, 46, 0.2)' }
         }),
     },
     exploreBtnText: {

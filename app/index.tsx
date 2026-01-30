@@ -1,25 +1,26 @@
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Stack, router } from "expo-router";
 import { useEffect, useRef } from "react";
 import {
   Animated,
-  Dimensions,
-  Image,
+  Platform,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
+  useWindowDimensions
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
 
-const { width, height } = Dimensions.get("window");
+const MAX_WIDTH = 800; // Constrain welcome screen width
 
 export default function Index() {
   const { isAuthenticated, isLoading } = useAuth();
+  const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
 
   // Animation values
@@ -28,37 +29,32 @@ export default function Index() {
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
   useEffect(() => {
+    const useNativeDriver = Platform.OS !== 'web';
     // Start animations
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 600,
-        useNativeDriver: true,
+        useNativeDriver,
       }),
       Animated.timing(slideUpAnim, {
         toValue: 0,
         duration: 600,
-        useNativeDriver: true,
+        useNativeDriver,
       }),
       Animated.spring(scaleAnim, {
         toValue: 1,
         tension: 50,
         friction: 7,
-        useNativeDriver: true,
+        useNativeDriver,
       }),
     ]).start();
   }, []);
 
-  // Redirect to home if already authenticated
-  useEffect(() => {
-    if (!isLoading && isAuthenticated) {
-      console.log("User is authenticated");
-    }
-  }, [isAuthenticated, isLoading]);
+  const contentWidth = Math.min(width - 40, MAX_WIDTH);
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       <Stack.Screen options={{ title: "Welcome", headerShown: false }} />
 
       {/* Gradient Background */}
@@ -71,9 +67,9 @@ export default function Index() {
 
       {/* Decorative circles */}
       <View style={styles.decorativeContainer}>
-        <View style={[styles.circle, styles.circle1]} />
-        <View style={[styles.circle, styles.circle2]} />
-        <View style={[styles.circle, styles.circle3]} />
+        <View style={[styles.circle, styles.circle1, { width: width * 0.7, height: width * 0.7, top: -width * 0.2, right: -width * 0.2 }]} />
+        <View style={[styles.circle, styles.circle2, { width: width * 0.5, height: width * 0.5, bottom: height * 0.25, left: -width * 0.25 }]} />
+        <View style={[styles.circle, styles.circle3, { width: width * 0.35, height: width * 0.35, bottom: -width * 0.1, right: -width * 0.1 }]} />
       </View>
 
       <ScrollView
@@ -83,178 +79,182 @@ export default function Index() {
           {
             paddingTop: insets.top + 20,
             paddingBottom: insets.bottom + 24,
+            alignItems: 'center'
           },
         ]}
         showsVerticalScrollIndicator={false}
         bounces={false}
       >
-        {/* Logo Section */}
-        <Animated.View
-          style={[
-            styles.logoSection,
-            {
-              opacity: fadeAnim,
-              transform: [{ scale: scaleAnim }],
-            },
-          ]}
-        >
-          <View style={styles.logoOuter}>
-            <LinearGradient
-              colors={['#e94560', '#ff6b6b', '#feca57']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.logoGradient}
-            >
-              <View style={styles.logoInner}>
-                <Image
-                  source={require('../assets/images/logo.png')}
-                  style={styles.logoImage}
-                  resizeMode="contain"
-                />
+        <View style={{ width: contentWidth, flex: 1, justifyContent: 'space-between', minHeight: height - insets.top - insets.bottom - 44 }}>
+          {/* Logo Section */}
+          <Animated.View
+            style={[
+              styles.logoSection,
+              {
+                opacity: fadeAnim,
+                transform: [{ scale: scaleAnim }],
+              },
+            ]}
+          >
+            <View style={styles.logoOuter}>
+              <LinearGradient
+                colors={['#e94560', '#ff6b6b', '#feca57']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.logoGradient}
+              >
+                <View style={styles.logoInner}>
+                  <Image
+                    source={require('../assets/images/logo.png')}
+                    style={styles.logoImage}
+                    contentFit="contain"
+                  />
+                </View>
+              </LinearGradient>
+            </View>
+          </Animated.View>
+
+
+          {/* Brand Name */}
+          <Animated.View
+            style={[
+              styles.brandSection,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideUpAnim }],
+              },
+            ]}
+          >
+            <Text style={styles.brandName}>BuyWay</Text>
+            <View style={styles.taglineContainer}>
+              <View style={styles.taglineLine} />
+              <Text style={styles.tagline}>FASHION & LIFESTYLE</Text>
+              <View style={styles.taglineLine} />
+            </View>
+          </Animated.View>
+
+          {/* Hero Section */}
+          <Animated.View
+            style={[
+              styles.heroSection,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideUpAnim }],
+              },
+            ]}
+          >
+            <Text style={styles.heroTitle}>Discover Your{'\n'}Perfect Style</Text>
+            <Text style={styles.heroSubtitle}>
+              Explore thousands of trendy fashion items curated just for you
+            </Text>
+          </Animated.View>
+
+          {/* Features */}
+          <Animated.View
+            style={[
+              styles.featuresRow,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideUpAnim }],
+              },
+            ]}
+          >
+            <View style={styles.featureItem}>
+              <View style={styles.featureIconContainer}>
+                <Ionicons name="flash" size={18} color="#feca57" />
               </View>
-            </LinearGradient>
-          </View>
-        </Animated.View>
-
-        {/* Brand Name */}
-        <Animated.View
-          style={[
-            styles.brandSection,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideUpAnim }],
-            },
-          ]}
-        >
-          <Text style={styles.brandName}>BuyWay</Text>
-          <View style={styles.taglineContainer}>
-            <View style={styles.taglineLine} />
-            <Text style={styles.tagline}>FASHION & LIFESTYLE</Text>
-            <View style={styles.taglineLine} />
-          </View>
-        </Animated.View>
-
-        {/* Hero Section */}
-        <Animated.View
-          style={[
-            styles.heroSection,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideUpAnim }],
-            },
-          ]}
-        >
-          <Text style={styles.heroTitle}>Discover Your{'\n'}Perfect Style</Text>
-          <Text style={styles.heroSubtitle}>
-            Explore thousands of trendy fashion items curated just for you
-          </Text>
-        </Animated.View>
-
-        {/* Features */}
-        <Animated.View
-          style={[
-            styles.featuresRow,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideUpAnim }],
-            },
-          ]}
-        >
-          <View style={styles.featureItem}>
-            <View style={styles.featureIconContainer}>
-              <Ionicons name="flash" size={18} color="#feca57" />
+              <Text style={styles.featureText}>Fast{'\n'}Delivery</Text>
             </View>
-            <Text style={styles.featureText}>Fast{'\n'}Delivery</Text>
-          </View>
-          <View style={styles.featureDivider} />
-          <View style={styles.featureItem}>
-            <View style={styles.featureIconContainer}>
-              <Ionicons name="shield-checkmark" size={18} color="#48dbfb" />
+            <View style={styles.featureDivider} />
+            <View style={styles.featureItem}>
+              <View style={styles.featureIconContainer}>
+                <Ionicons name="shield-checkmark" size={18} color="#48dbfb" />
+              </View>
+              <Text style={styles.featureText}>Secure{'\n'}Payment</Text>
             </View>
-            <Text style={styles.featureText}>Secure{'\n'}Payment</Text>
-          </View>
-          <View style={styles.featureDivider} />
-          <View style={styles.featureItem}>
-            <View style={styles.featureIconContainer}>
-              <Ionicons name="diamond" size={18} color="#ff6b6b" />
+            <View style={styles.featureDivider} />
+            <View style={styles.featureItem}>
+              <View style={styles.featureIconContainer}>
+                <Ionicons name="diamond" size={18} color="#ff6b6b" />
+              </View>
+              <Text style={styles.featureText}>Premium{'\n'}Quality</Text>
             </View>
-            <Text style={styles.featureText}>Premium{'\n'}Quality</Text>
-          </View>
-        </Animated.View>
+          </Animated.View>
 
-        {/* Buttons */}
-        <Animated.View
-          style={[
-            styles.buttonSection,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideUpAnim }],
-            },
-          ]}
-        >
-          <TouchableOpacity
-            style={styles.primaryButton}
-            onPress={() => router.push("/(auth)/login")}
-            activeOpacity={0.9}
+          {/* Buttons */}
+          <Animated.View
+            style={[
+              styles.buttonSection,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideUpAnim }],
+              },
+            ]}
           >
-            <LinearGradient
-              colors={['#e94560', '#ff6b6b']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.buttonGradient}
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={() => router.push("/(auth)/login")}
+              activeOpacity={0.9}
             >
-              <Text style={styles.primaryButtonText}>Get Started</Text>
-              <Ionicons name="arrow-forward" size={20} color="#fff" />
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.secondaryButton}
-            onPress={() => router.push("/(auth)/signup")}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.secondaryButtonText}>Create Account</Text>
-          </TouchableOpacity>
-
-          {/* API Test Button */}
-          <TouchableOpacity
-            style={styles.testButton}
-            onPress={() => router.push("/test-auth")}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="flask-outline" size={16} color="#feca57" />
-            <Text style={styles.testButtonText}>Test API</Text>
-          </TouchableOpacity>
-
-          {/* Dashboard Preview Buttons */}
-          <View style={styles.previewContainer}>
-            <Text style={styles.previewLabel}>Preview Dashboards:</Text>
-            <View style={styles.previewButtons}>
-              <TouchableOpacity
-                style={styles.previewButton}
-                onPress={() => router.push("/(user)/home")}
-                activeOpacity={0.8}
+              <LinearGradient
+                colors={['#e94560', '#ff6b6b']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.buttonGradient}
               >
-                <Ionicons name="person" size={16} color="#48dbfb" />
-                <Text style={styles.previewButtonText}>User</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.previewButton}
-                onPress={() => router.push("/(admin)/dashboard")}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="shield-checkmark" size={16} color="#10b981" />
-                <Text style={styles.previewButtonText}>Admin</Text>
-              </TouchableOpacity>
+                <Text style={styles.primaryButtonText}>Get Started</Text>
+                <Ionicons name="arrow-forward" size={20} color="#fff" />
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={() => router.push("/(auth)/signup")}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.secondaryButtonText}>Create Account</Text>
+            </TouchableOpacity>
+
+            {/* API Test Button */}
+            <TouchableOpacity
+              style={styles.testButton}
+              onPress={() => router.push("/test-auth")}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="flask-outline" size={16} color="#feca57" />
+              <Text style={styles.testButtonText}>Test API</Text>
+            </TouchableOpacity>
+
+            {/* Dashboard Preview Buttons */}
+            <View style={styles.previewContainer}>
+              <Text style={styles.previewLabel}>Preview Dashboards:</Text>
+              <View style={styles.previewButtons}>
+                <TouchableOpacity
+                  style={styles.previewButton}
+                  onPress={() => router.push("/(user)/home")}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="person" size={16} color="#48dbfb" />
+                  <Text style={styles.previewButtonText}>User</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.previewButton}
+                  onPress={() => router.push("/(admin)/dashboard")}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="shield-checkmark" size={16} color="#10b981" />
+                  <Text style={styles.previewButtonText}>Admin</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
 
-          <Text style={styles.termsText}>
-            By continuing, you agree to our{' '}
-            <Text style={styles.termsLink}>Terms</Text> &{' '}
-            <Text style={styles.termsLink}>Privacy Policy</Text>
-          </Text>
-        </Animated.View>
+            <Text style={styles.termsText}>
+              By continuing, you agree to our{' '}
+              <Text style={styles.termsLink}>Terms</Text> &{' '}
+              <Text style={styles.termsLink}>Privacy Policy</Text>
+            </Text>
+          </Animated.View>
+        </View>
       </ScrollView>
     </View>
   );
@@ -278,25 +278,13 @@ const styles = StyleSheet.create({
     opacity: 0.1,
   },
   circle1: {
-    width: width * 0.7,
-    height: width * 0.7,
     backgroundColor: '#e94560',
-    top: -width * 0.2,
-    right: -width * 0.2,
   },
   circle2: {
-    width: width * 0.5,
-    height: width * 0.5,
     backgroundColor: '#48dbfb',
-    bottom: height * 0.25,
-    left: -width * 0.25,
   },
   circle3: {
-    width: width * 0.35,
-    height: width * 0.35,
     backgroundColor: '#feca57',
-    bottom: -width * 0.1,
-    right: -width * 0.1,
   },
   scrollView: {
     flex: 1,
@@ -304,8 +292,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    justifyContent: 'space-between',
-    minHeight: height,
   },
   // Logo
   logoSection: {
@@ -314,7 +300,11 @@ const styles = StyleSheet.create({
   },
   logoOuter: {
     borderRadius: 28,
-    elevation: 12,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 10 },
+      android: { elevation: 12 },
+      web: { boxShadow: '0 6px 12px rgba(0,0,0,0.3)' }
+    }),
   },
   logoGradient: {
     borderRadius: 26,
@@ -424,8 +414,12 @@ const styles = StyleSheet.create({
   primaryButton: {
     borderRadius: 14,
     overflow: 'hidden',
-    elevation: 8,
     marginBottom: 12,
+    ...Platform.select({
+      ios: { shadowColor: '#e94560', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
+      android: { elevation: 8 },
+      web: { boxShadow: '0 4px 10px rgba(233, 69, 96, 0.3)' }
+    }),
   },
   buttonGradient: {
     flexDirection: 'row',

@@ -4,21 +4,22 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router, Stack } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    Dimensions,
     FlatList,
     Platform,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
+    useWindowDimensions,
     View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import orderService, { Order } from '../../services/orderService';
 
-const { width } = Dimensions.get('window');
+const MAX_WIDTH = 1200;
 
 export default function OrdersScreen() {
+    const { width } = useWindowDimensions();
     const insets = useSafeAreaInsets();
     const [orders, setOrders] = useState<Order[]>([]);
     const [activeTab, setActiveTab] = useState<'Active' | 'History'>('Active');
@@ -29,6 +30,8 @@ export default function OrdersScreen() {
         });
         return unsubscribe;
     }, []);
+
+    const contentWidth = Math.min(width - 40, MAX_WIDTH);
 
     const filteredOrders = orders.filter(order =>
         activeTab === 'Active' ? (order.status !== 'Delivered' && order.status !== 'Cancelled') : (order.status === 'Delivered' || order.status === 'Cancelled')
@@ -61,7 +64,7 @@ export default function OrdersScreen() {
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     {item.items.map((product, idx) => (
                         <View key={idx} style={styles.itemThumbContainer}>
-                            <Image source={{ uri: product.image }} style={styles.itemThumb} />
+                            <Image source={{ uri: product.image }} style={styles.itemThumb} contentFit="cover" />
                             {product.quantity > 1 && (
                                 <View style={styles.qtyBadge}>
                                     <Text style={styles.qtyBadgeText}>x{product.quantity}</Text>
@@ -90,49 +93,54 @@ export default function OrdersScreen() {
             <Stack.Screen options={{ headerShown: false }} />
 
             <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-                <Text style={styles.headerTitle}>My Orders</Text>
+                <View style={[styles.headerWrapper, { width: contentWidth }]}>
+                    <Text style={styles.headerTitle}>My Orders</Text>
 
-                {/* Tabs */}
-                <View style={styles.tabBar}>
-                    {['Active', 'History'].map((tab) => (
-                        <TouchableOpacity
-                            key={tab}
-                            style={[styles.tab, activeTab === tab && styles.activeTab]}
-                            onPress={() => setActiveTab(tab as any)}
-                        >
-                            <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>{tab}</Text>
-                            {activeTab === tab && <View style={styles.activeIndicator} />}
-                        </TouchableOpacity>
-                    ))}
+                    {/* Tabs */}
+                    <View style={styles.tabBar}>
+                        {['Active', 'History'].map((tab) => (
+                            <TouchableOpacity
+                                key={tab}
+                                style={[styles.tab, activeTab === tab && styles.activeTab]}
+                                onPress={() => setActiveTab(tab as any)}
+                            >
+                                <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>{tab}</Text>
+                                {activeTab === tab && <View style={styles.activeIndicator} />}
+                            </TouchableOpacity>
+                        ))}
+                    </View>
                 </View>
             </View>
 
-            {filteredOrders.length === 0 ? (
-                <View style={styles.emptyContainer}>
-                    <View style={styles.emptyIllustration}>
-                        <LinearGradient colors={['#F8F9FA', '#E9ECEF']} style={styles.emptyCircle}>
-                            <Ionicons name="receipt-outline" size={60} color="#ADADAD" />
-                        </LinearGradient>
+            <View style={{ flex: 1, alignItems: 'center' }}>
+                {filteredOrders.length === 0 ? (
+                    <View style={[styles.emptyContainer, { width: contentWidth }]}>
+                        <View style={styles.emptyIllustration}>
+                            <LinearGradient colors={['#F8F9FA', '#E9ECEF']} style={styles.emptyCircle}>
+                                <Ionicons name="receipt-outline" size={60} color="#ADADAD" />
+                            </LinearGradient>
+                        </View>
+                        <Text style={styles.emptyTitle}>No {activeTab} Orders</Text>
+                        <Text style={styles.emptySubtitle}>
+                            {activeTab === 'Active'
+                                ? "You don't have any orders in progress right now."
+                                : "Your order history will appear here once you complete a purchase."}
+                        </Text>
+                        <TouchableOpacity style={styles.shopBtn} onPress={() => router.replace('/(user)/home')}>
+                            <Text style={styles.shopBtnText}>Start Shopping</Text>
+                        </TouchableOpacity>
                     </View>
-                    <Text style={styles.emptyTitle}>No {activeTab} Orders</Text>
-                    <Text style={styles.emptySubtitle}>
-                        {activeTab === 'Active'
-                            ? "You don't have any orders in progress right now."
-                            : "Your order history will appear here once you complete a purchase."}
-                    </Text>
-                    <TouchableOpacity style={styles.shopBtn} onPress={() => router.replace('/(user)/home')}>
-                        <Text style={styles.shopBtnText}>Start Shopping</Text>
-                    </TouchableOpacity>
-                </View>
-            ) : (
-                <FlatList
-                    data={filteredOrders}
-                    renderItem={renderOrderItem}
-                    keyExtractor={(item) => item.id}
-                    contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}
-                    showsVerticalScrollIndicator={false}
-                />
-            )}
+                ) : (
+                    <FlatList
+                        data={filteredOrders}
+                        renderItem={renderOrderItem}
+                        keyExtractor={(item) => item.id}
+                        style={{ width: contentWidth }}
+                        contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}
+                        showsVerticalScrollIndicator={false}
+                    />
+                )}
+            </View>
 
             {/* Bottom Navigation */}
             <View style={[styles.bottomNav, { paddingBottom: insets.bottom + 8 }]}>
@@ -167,11 +175,14 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         borderBottomLeftRadius: 30,
         borderBottomRightRadius: 30,
+        alignItems: 'center',
         ...Platform.select({
             ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.05, shadowRadius: 15 },
             android: { elevation: 5 },
+            web: { boxShadow: '0 10px 15px rgba(0,0,0,0.05)' }
         }),
     },
+    headerWrapper: { width: '100%' },
     headerTitle: {
         fontSize: 28,
         fontWeight: '800',
@@ -207,7 +218,7 @@ const styles = StyleSheet.create({
         borderRadius: 3,
     },
     listContent: {
-        padding: 20,
+        paddingVertical: 20,
     },
     orderCard: {
         backgroundColor: '#FFF',
@@ -217,6 +228,7 @@ const styles = StyleSheet.create({
         ...Platform.select({
             ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10 },
             android: { elevation: 3 },
+            web: { boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }
         }),
     },
     orderHeader: {
@@ -370,10 +382,9 @@ const styles = StyleSheet.create({
         borderTopColor: '#F1F1F1',
         paddingTop: 12,
         paddingHorizontal: 24,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
+        ...Platform.select({
+            web: { boxShadow: '0 -2px 10px rgba(0,0,0,0.05)' }
+        }),
         elevation: 10,
     },
     navItem: {

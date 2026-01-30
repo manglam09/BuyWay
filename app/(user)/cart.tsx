@@ -1,11 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, Stack } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    Dimensions,
     FlatList,
-    Image,
     KeyboardAvoidingView,
     Modal,
     Platform,
@@ -14,6 +13,7 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
+    useWindowDimensions,
     View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,9 +21,10 @@ import { useToast } from '../../components/ToastProvider';
 import cartService, { CartItem } from '../../services/cartService';
 import orderService from '../../services/orderService';
 
-const { width } = Dimensions.get('window');
+const MAX_WIDTH = 1200;
 
 export default function CartScreen() {
+    const { width } = useWindowDimensions();
     const insets = useSafeAreaInsets();
     const { showToast } = useToast();
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -47,6 +48,8 @@ export default function CartScreen() {
         });
         return unsubscribe;
     }, []);
+
+    const contentWidth = Math.min(width - 40, MAX_WIDTH);
 
     const handlePlaceOrder = () => {
         const { houseNo, area, city, state, pincode } = addressForm;
@@ -76,7 +79,7 @@ export default function CartScreen() {
     const renderCartItem = ({ item }: { item: CartItem }) => (
         <View style={styles.card}>
             <View style={styles.imageContainer}>
-                <Image source={{ uri: item.image }} style={styles.image} />
+                <Image source={{ uri: item.image }} style={styles.image} contentFit="contain" />
             </View>
             <View style={styles.details}>
                 <View style={styles.headerRow}>
@@ -133,194 +136,200 @@ export default function CartScreen() {
                 }}
             />
 
-            {cartItems.length === 0 ? (
-                <View style={styles.emptyContainer}>
-                    <View style={styles.emptyIconContainer}>
-                        <Ionicons name="bag-outline" size={70} color="#ADADAD" />
-                    </View>
-                    <Text style={styles.emptyTitle}>Your Cart is Empty</Text>
-                    <Text style={styles.emptySubtitle}>Looks like you haven't added anything to your cart yet.</Text>
-                    <TouchableOpacity
-                        style={styles.shopBtn}
-                        onPress={() => router.back()}
-                    >
-                        <Text style={styles.shopBtnText}>Shop Now</Text>
-                    </TouchableOpacity>
-                </View>
-            ) : (
-                <>
-                    <FlatList
-                        data={cartItems}
-                        renderItem={renderCartItem}
-                        keyExtractor={(item, index) => `${item.id}-${item.selectedSize}-${index}`}
-                        contentContainerStyle={[
-                            styles.listContent,
-                            { paddingBottom: insets.bottom + 180 }
-                        ]}
-                    />
-
-                    <View style={[styles.summaryCard, { paddingBottom: Math.max(insets.bottom, 20) + 10 }]}>
-                        <View style={styles.summaryRow}>
-                            <Text style={styles.summaryLabel}>Subtotal</Text>
-                            <Text style={styles.summaryValue}>₹{cartService.getTotalPrice().toLocaleString()}</Text>
+            <View style={{ flex: 1, alignItems: 'center' }}>
+                {cartItems.length === 0 ? (
+                    <View style={[styles.emptyContainer, { width: contentWidth }]}>
+                        <View style={styles.emptyIconContainer}>
+                            <Ionicons name="bag-outline" size={70} color="#ADADAD" />
                         </View>
-                        <View style={styles.summaryRow}>
-                            <Text style={styles.summaryLabel}>Delivery Fee</Text>
-                            <Text style={[styles.summaryValue, { color: '#10b981' }]}>FREE</Text>
-                        </View>
-                        <View style={styles.divider} />
-                        <View style={styles.summaryRow}>
-                            <Text style={styles.totalLabel}>Total</Text>
-                            <Text style={styles.totalValue}>₹{cartService.getTotalPrice().toLocaleString()}</Text>
-                        </View>
-
+                        <Text style={styles.emptyTitle}>Your Cart is Empty</Text>
+                        <Text style={styles.emptySubtitle}>Looks like you haven't added anything to your cart yet.</Text>
                         <TouchableOpacity
-                            style={styles.placeOrderBtn}
-                            onPress={() => setIsCheckoutVisible(true)}
-                            activeOpacity={0.9}
+                            style={styles.shopBtn}
+                            onPress={() => router.back()}
                         >
-                            <LinearGradient
-                                colors={['#e94560', '#ff6b6b']}
-                                style={styles.placeOrderGradient}
-                            >
-                                <Text style={styles.placeOrderText}>Confirm Order</Text>
-                                <Ionicons name="arrow-forward" size={20} color="#FFF" />
-                            </LinearGradient>
+                            <Text style={styles.shopBtnText}>Shop Now</Text>
                         </TouchableOpacity>
                     </View>
+                ) : (
+                    <>
+                        <FlatList
+                            data={cartItems}
+                            renderItem={renderCartItem}
+                            keyExtractor={(item, index) => `${item.id}-${item.selectedSize}-${index}`}
+                            style={{ width: contentWidth }}
+                            contentContainerStyle={[
+                                styles.listContent,
+                                { paddingBottom: insets.bottom + 180 }
+                            ]}
+                            showsVerticalScrollIndicator={false}
+                        />
 
-                    {/* Checkout Modal */}
-                    <Modal
-                        visible={isCheckoutVisible}
-                        animationType="slide"
-                        transparent={true}
-                        onRequestClose={() => setIsCheckoutVisible(false)}
-                    >
-                        <View style={styles.modalOverlay}>
-                            <KeyboardAvoidingView
-                                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                                style={styles.modalContent}
-                            >
-                                <View style={styles.modalHeader}>
-                                    <Text style={styles.modalTitle}>Checkout</Text>
-                                    <TouchableOpacity onPress={() => setIsCheckoutVisible(false)}>
-                                        <Ionicons name="close" size={24} color="#1A1A2E" />
-                                    </TouchableOpacity>
+                        <View style={[styles.summaryCard, { width: width, paddingBottom: Math.max(insets.bottom, 20) + 10, alignItems: 'center' }]}>
+                            <View style={{ width: contentWidth }}>
+                                <View style={styles.summaryRow}>
+                                    <Text style={styles.summaryLabel}>Subtotal</Text>
+                                    <Text style={styles.summaryValue}>₹{cartService.getTotalPrice().toLocaleString()}</Text>
+                                </View>
+                                <View style={styles.summaryRow}>
+                                    <Text style={styles.summaryLabel}>Delivery Fee</Text>
+                                    <Text style={[styles.summaryValue, { color: '#10b981' }]}>FREE</Text>
+                                </View>
+                                <View style={styles.divider} />
+                                <View style={styles.summaryRow}>
+                                    <Text style={styles.totalLabel}>Total</Text>
+                                    <Text style={styles.totalValue}>₹{cartService.getTotalPrice().toLocaleString()}</Text>
                                 </View>
 
-                                <ScrollView showsVerticalScrollIndicator={false}>
-                                    <Text style={styles.inputLabel}>Delivery Address</Text>
-
-                                    <View style={styles.addressForm}>
-                                        <View style={styles.inputRow}>
-                                            <View style={{ flex: 1 }}>
-                                                <Text style={styles.fieldLabel}>Flat / House No.</Text>
-                                                <TextInput
-                                                    style={styles.fieldInput}
-                                                    placeholder="Flat 101, Pearl"
-                                                    placeholderTextColor="#ADADAD"
-                                                    value={addressForm.houseNo}
-                                                    onChangeText={(txt) => setAddressForm(prev => ({ ...prev, houseNo: txt }))}
-                                                />
-                                            </View>
-                                            <View style={{ flex: 1, marginLeft: 12 }}>
-                                                <Text style={styles.fieldLabel}>Area / Street</Text>
-                                                <TextInput
-                                                    style={styles.fieldInput}
-                                                    placeholder="Sector 12"
-                                                    placeholderTextColor="#ADADAD"
-                                                    value={addressForm.area}
-                                                    onChangeText={(txt) => setAddressForm(prev => ({ ...prev, area: txt }))}
-                                                />
-                                            </View>
-                                        </View>
-
-                                        <Text style={styles.fieldLabel}>Landmark (Optional)</Text>
-                                        <TextInput
-                                            style={styles.fieldInput}
-                                            placeholder="Near Apollo Hospital"
-                                            placeholderTextColor="#ADADAD"
-                                            value={addressForm.landmark}
-                                            onChangeText={(txt) => setAddressForm(prev => ({ ...prev, landmark: txt }))}
-                                        />
-
-                                        <View style={styles.inputRow}>
-                                            <View style={{ flex: 1 }}>
-                                                <Text style={styles.fieldLabel}>City</Text>
-                                                <TextInput
-                                                    style={styles.fieldInput}
-                                                    placeholder="New Delhi"
-                                                    placeholderTextColor="#ADADAD"
-                                                    value={addressForm.city}
-                                                    onChangeText={(txt) => setAddressForm(prev => ({ ...prev, city: txt }))}
-                                                />
-                                            </View>
-                                            <View style={{ flex: 1, marginLeft: 12 }}>
-                                                <Text style={styles.fieldLabel}>State</Text>
-                                                <TextInput
-                                                    style={styles.fieldInput}
-                                                    placeholder="Delhi"
-                                                    placeholderTextColor="#ADADAD"
-                                                    value={addressForm.state}
-                                                    onChangeText={(txt) => setAddressForm(prev => ({ ...prev, state: txt }))}
-                                                />
-                                            </View>
-                                        </View>
-
-                                        <Text style={styles.fieldLabel}>Pincode</Text>
-                                        <TextInput
-                                            style={styles.fieldInput}
-                                            placeholder="110001"
-                                            placeholderTextColor="#ADADAD"
-                                            keyboardType="number-pad"
-                                            maxLength={6}
-                                            value={addressForm.pincode}
-                                            onChangeText={(txt) => setAddressForm(prev => ({ ...prev, pincode: txt }))}
-                                        />
-                                    </View>
-
-                                    <Text style={styles.inputLabel}>Payment Method</Text>
-                                    <View style={styles.paymentContainer}>
-                                        {['UPI', 'Card', 'COD'].map((method) => (
-                                            <TouchableOpacity
-                                                key={method}
-                                                style={[styles.paymentMethod, paymentMethod === method && styles.activePayment]}
-                                                onPress={() => setPaymentMethod(method)}
-                                            >
-                                                <Ionicons
-                                                    name={method === 'UPI' ? 'phone-portrait-outline' : method === 'Card' ? 'card-outline' : 'cash-outline'}
-                                                    size={22}
-                                                    color={paymentMethod === method ? '#FFF' : '#1A1A2E'}
-                                                />
-                                                <Text style={[styles.paymentText, paymentMethod === method && styles.activePaymentText]}>{method}</Text>
-                                            </TouchableOpacity>
-                                        ))}
-                                    </View>
-
-                                    <View style={styles.priceBreakdown}>
-                                        <View style={styles.summaryRow}>
-                                            <Text style={styles.summaryLabel}>Total Payable</Text>
-                                            <Text style={styles.totalValue}>₹{cartService.getTotalPrice().toLocaleString()}</Text>
-                                        </View>
-                                    </View>
-
-                                    <TouchableOpacity
-                                        style={styles.finalOrderBtn}
-                                        onPress={handlePlaceOrder}
+                                <TouchableOpacity
+                                    style={styles.placeOrderBtn}
+                                    onPress={() => setIsCheckoutVisible(true)}
+                                    activeOpacity={0.9}
+                                >
+                                    <LinearGradient
+                                        colors={['#e94560', '#ff6b6b']}
+                                        style={styles.placeOrderGradient}
                                     >
-                                        <LinearGradient
-                                            colors={['#1A1A2E', '#16213E']}
-                                            style={styles.placeOrderGradient}
-                                        >
-                                            <Text style={styles.placeOrderText}>Place Order Now</Text>
-                                        </LinearGradient>
-                                    </TouchableOpacity>
-                                </ScrollView>
-                            </KeyboardAvoidingView>
+                                        <Text style={styles.placeOrderText}>Confirm Order</Text>
+                                        <Ionicons name="arrow-forward" size={20} color="#FFF" />
+                                    </LinearGradient>
+                                </TouchableOpacity>
+                            </View>
                         </View>
-                    </Modal>
-                </>
-            )}
+                    </>
+                )}
+            </View>
+
+            {/* Checkout Modal */}
+            <Modal
+                visible={isCheckoutVisible}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={() => setIsCheckoutVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <KeyboardAvoidingView
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                        style={styles.modalContent}
+                    >
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Checkout</Text>
+                            <TouchableOpacity onPress={() => setIsCheckoutVisible(false)}>
+                                <Ionicons name="close" size={24} color="#1A1A2E" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                            <Text style={styles.inputLabel}>Delivery Address</Text>
+
+                            <View style={styles.addressForm}>
+                                <View style={styles.inputRow}>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.fieldLabel}>Flat / House No.</Text>
+                                        <TextInput
+                                            style={styles.fieldInput}
+                                            placeholder="Flat 101, Pearl"
+                                            placeholderTextColor="#ADADAD"
+                                            value={addressForm.houseNo}
+                                            onChangeText={(txt) => setAddressForm(prev => ({ ...prev, houseNo: txt }))}
+                                        />
+                                    </View>
+                                    <View style={{ flex: 1, marginLeft: 12 }}>
+                                        <Text style={styles.fieldLabel}>Area / Street</Text>
+                                        <TextInput
+                                            style={styles.fieldInput}
+                                            placeholder="Sector 12"
+                                            placeholderTextColor="#ADADAD"
+                                            value={addressForm.area}
+                                            onChangeText={(txt) => setAddressForm(prev => ({ ...prev, area: txt }))}
+                                        />
+                                    </View>
+                                </View>
+
+                                <Text style={styles.fieldLabel}>Landmark (Optional)</Text>
+                                <TextInput
+                                    style={styles.fieldInput}
+                                    placeholder="Near Apollo Hospital"
+                                    placeholderTextColor="#ADADAD"
+                                    value={addressForm.landmark}
+                                    onChangeText={(txt) => setAddressForm(prev => ({ ...prev, landmark: txt }))}
+                                />
+
+                                <View style={styles.inputRow}>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.fieldLabel}>City</Text>
+                                        <TextInput
+                                            style={styles.fieldInput}
+                                            placeholder="New Delhi"
+                                            placeholderTextColor="#ADADAD"
+                                            value={addressForm.city}
+                                            onChangeText={(txt) => setAddressForm(prev => ({ ...prev, city: txt }))}
+                                        />
+                                    </View>
+                                    <View style={{ flex: 1, marginLeft: 12 }}>
+                                        <Text style={styles.fieldLabel}>State</Text>
+                                        <TextInput
+                                            style={styles.fieldInput}
+                                            placeholder="Delhi"
+                                            placeholderTextColor="#ADADAD"
+                                            value={addressForm.state}
+                                            onChangeText={(txt) => setAddressForm(prev => ({ ...prev, state: txt }))}
+                                        />
+                                    </View>
+                                </View>
+
+                                <Text style={styles.fieldLabel}>Pincode</Text>
+                                <TextInput
+                                    style={styles.fieldInput}
+                                    placeholder="110001"
+                                    placeholderTextColor="#ADADAD"
+                                    keyboardType="number-pad"
+                                    maxLength={6}
+                                    value={addressForm.pincode}
+                                    onChangeText={(txt) => setAddressForm(prev => ({ ...prev, pincode: txt }))}
+                                />
+                            </View>
+
+                            <Text style={styles.inputLabel}>Payment Method</Text>
+                            <View style={styles.paymentContainer}>
+                                {['UPI', 'Card', 'COD'].map((method) => (
+                                    <TouchableOpacity
+                                        key={method}
+                                        style={[styles.paymentMethod, paymentMethod === method && styles.activePayment]}
+                                        onPress={() => setPaymentMethod(method)}
+                                    >
+                                        <Ionicons
+                                            name={method === 'UPI' ? 'phone-portrait-outline' : method === 'Card' ? 'card-outline' : 'cash-outline'}
+                                            size={22}
+                                            color={paymentMethod === method ? '#FFF' : '#1A1A2E'}
+                                        />
+                                        <Text style={[styles.paymentText, paymentMethod === method && styles.activePaymentText]}>{method}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+
+                            <View style={styles.priceBreakdown}>
+                                <View style={styles.summaryRow}>
+                                    <Text style={styles.summaryLabel}>Total Payable</Text>
+                                    <Text style={styles.totalValue}>₹{cartService.getTotalPrice().toLocaleString()}</Text>
+                                </View>
+                            </View>
+
+                            <TouchableOpacity
+                                style={styles.finalOrderBtn}
+                                onPress={handlePlaceOrder}
+                            >
+                                <LinearGradient
+                                    colors={['#1A1A2E', '#16213E']}
+                                    style={styles.placeOrderGradient}
+                                >
+                                    <Text style={styles.placeOrderText}>Place Order Now</Text>
+                                </LinearGradient>
+                            </TouchableOpacity>
+                        </ScrollView>
+                    </KeyboardAvoidingView>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -335,7 +344,7 @@ const styles = StyleSheet.create({
         padding: 10,
     },
     listContent: {
-        padding: 20,
+        paddingVertical: 20,
     },
     card: {
         flexDirection: 'row',
@@ -346,6 +355,7 @@ const styles = StyleSheet.create({
         ...Platform.select({
             ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10 },
             android: { elevation: 3 },
+            web: { boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }
         }),
     },
     imageContainer: {
@@ -359,7 +369,6 @@ const styles = StyleSheet.create({
     image: {
         width: '80%',
         height: '80%',
-        resizeMode: 'contain',
     },
     details: {
         flex: 1,
@@ -418,6 +427,7 @@ const styles = StyleSheet.create({
         ...Platform.select({
             ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4 },
             android: { elevation: 2 },
+            web: { boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }
         }),
     },
     qtyText: {
@@ -439,6 +449,7 @@ const styles = StyleSheet.create({
         ...Platform.select({
             ios: { shadowColor: '#000', shadowOffset: { width: 0, height: -10 }, shadowOpacity: 0.05, shadowRadius: 15 },
             android: { elevation: 20 },
+            web: { boxShadow: '0 -10px 15px rgba(0,0,0,0.05)' }
         }),
     },
     summaryRow: {
@@ -478,6 +489,7 @@ const styles = StyleSheet.create({
         ...Platform.select({
             ios: { shadowColor: '#e94560', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 12 },
             android: { elevation: 8 },
+            web: { boxShadow: '0 8px 12px rgba(233, 69, 96, 0.2)' }
         }),
     },
     placeOrderGradient: {
@@ -510,6 +522,7 @@ const styles = StyleSheet.create({
         ...Platform.select({
             ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.05, shadowRadius: 20 },
             android: { elevation: 5 },
+            web: { boxShadow: '0 10px 20px rgba(0,0,0,0.05)' }
         }),
     },
     emptyTitle: {

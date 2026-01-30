@@ -1,6 +1,8 @@
 // Design System based on Figma - Mobile E-commerce Clothing Store
 // Font: Encode (we'll use system fonts with similar weight)
 
+import { Platform } from 'react-native';
+
 export const Colors = {
     // Primary Colors from Figma
     primary: '#292526',      // Dark charcoal - primary buttons/text
@@ -86,27 +88,36 @@ export const BorderRadius = {
 };
 
 export const Shadows = {
-    sm: {
-        shadowColor: Colors.primary,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
-    },
-    md: {
-        shadowColor: Colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-        elevation: 4,
-    },
-    lg: {
-        shadowColor: Colors.primary,
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.1,
-        shadowRadius: 16,
-        elevation: 8,
-    },
+    sm: Platform.select({
+        ios: {
+            shadowColor: Colors.primary,
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.05,
+            shadowRadius: 4,
+        },
+        android: { elevation: 2 },
+        web: { boxShadow: '0 2px 4px rgba(41, 37, 38, 0.05)' }
+    }),
+    md: Platform.select({
+        ios: {
+            shadowColor: Colors.primary,
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.08,
+            shadowRadius: 8,
+        },
+        android: { elevation: 4 },
+        web: { boxShadow: '0 4px 8px rgba(41, 37, 38, 0.08)' }
+    }),
+    lg: Platform.select({
+        ios: {
+            shadowColor: Colors.primary,
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.1,
+            shadowRadius: 16,
+        },
+        android: { elevation: 8 },
+        web: { boxShadow: '0 8px 16px rgba(41, 37, 38, 0.1)' }
+    }),
 };
 
 export default {

@@ -2,13 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { createContext, useCallback, useContext, useState } from 'react';
 import {
     Animated,
-    Dimensions,
+    Platform,
     StyleSheet,
     Text,
     View,
+    useWindowDimensions,
 } from 'react-native';
-
-const { width } = Dimensions.get('window');
 
 type ToastType = 'success' | 'error' | 'info';
 
@@ -19,6 +18,7 @@ interface ToastContextType {
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const { width } = useWindowDimensions();
     const [visible, setVisible] = useState(false);
     const [message, setMessage] = useState('');
     const [type, setType] = useState<ToastType>('success');
@@ -30,18 +30,20 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setType(toastType);
         setVisible(true);
 
+        const useNativeDriver = Platform.OS !== 'web';
+
         // Animate In
         Animated.parallel([
             Animated.timing(fadeAnim, {
                 toValue: 1,
                 duration: 300,
-                useNativeDriver: true,
+                useNativeDriver,
             }),
             Animated.spring(translateY, {
                 toValue: 20,
                 friction: 8,
                 tension: 40,
-                useNativeDriver: true,
+                useNativeDriver,
             })
         ]).start();
 
@@ -51,12 +53,12 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 Animated.timing(fadeAnim, {
                     toValue: 0,
                     duration: 300,
-                    useNativeDriver: true,
+                    useNativeDriver,
                 }),
                 Animated.timing(translateY, {
                     toValue: -100,
                     duration: 300,
-                    useNativeDriver: true,
+                    useNativeDriver,
                 })
             ]).start(() => setVisible(false));
         }, 3000);
@@ -80,11 +82,13 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const [mainColor, bgColor] = getColors();
 
+    const toastWidth = Math.min(width * 0.9, 400);
+
     return (
         <ToastContext.Provider value={{ showToast }}>
             {children}
             {visible && (
-                <View style={styles.overlay} pointerEvents="none">
+                <View style={[styles.overlay]} pointerEvents="none">
                     <Animated.View
                         style={[
                             styles.toastContainer,
@@ -93,6 +97,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                                 transform: [{ translateY }],
                                 backgroundColor: '#FFF',
                                 borderColor: mainColor,
+                                width: toastWidth,
                             }
                         ]}
                     >
@@ -131,13 +136,20 @@ const styles = StyleSheet.create({
         paddingRight: 20,
         borderRadius: 16,
         borderWidth: 1,
-        width: width * 0.9,
-        maxWidth: 400,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.1,
-        shadowRadius: 20,
-        elevation: 10,
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 10 },
+                shadowOpacity: 0.1,
+                shadowRadius: 20,
+            },
+            android: {
+                elevation: 10,
+            },
+            web: {
+                boxShadow: '0 10px 20px rgba(0,0,0,0.1)',
+            }
+        }),
     },
     iconBox: {
         width: 36,
@@ -154,3 +166,4 @@ const styles = StyleSheet.create({
         flex: 1,
     },
 });
+
