@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "e-commerce",
-    "slug": "e-commerce",
+    "name": "BuyWay",
+    "slug": "buyway",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
